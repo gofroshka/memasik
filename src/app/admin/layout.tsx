@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { BookOpen, LayoutDashboard, Shield } from 'lucide-react'
 import AdminSignOut from './AdminSignOut'
+import AdminMobileNav from './AdminMobileNav'
 import { buttonVariants } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
@@ -82,9 +83,12 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       </aside>
 
       {/* Main */}
-      <main className="overflow-y-auto p-5 pb-20 md:p-8">
+      <main className="overflow-y-auto p-5 pb-24 md:p-8 md:pb-8">
         {children}
       </main>
+
+      {/* Mobile bottom nav */}
+      <AdminMobileNav />
     </div>
   )
 }
