@@ -63,6 +63,32 @@ export default async function AdminDashboard() {
         </Link>
       </div>
 
+      {/* Quick actions */}
+      <section className="grid gap-3 sm:grid-cols-3">
+        <QuickAction
+          href="/admin/words/new"
+          icon={Plus}
+          title="Добавить слово"
+          desc="Создать новую карточку"
+          color="bg-primary/10 text-primary"
+        />
+        <QuickAction
+          href="/admin/suggestions"
+          icon={Lightbulb}
+          title="Предложения"
+          desc={s.pending > 0 ? `${s.pending} ожидают проверки` : 'Нет новых предложений'}
+          color={s.pending > 0 ? 'bg-amber-500/15 text-amber-600' : 'bg-muted text-muted-foreground'}
+          badge={s.pending > 0 ? s.pending : undefined}
+        />
+        <QuickAction
+          href="/admin/analytics"
+          icon={BarChart2}
+          title="Аналитика"
+          desc={`${s.total_views.toLocaleString('ru')} просмотров всего`}
+          color="bg-violet-500/10 text-violet-600"
+        />
+      </section>
+
       {/* Today pulse */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard
@@ -271,32 +297,6 @@ export default async function AdminDashboard() {
             })}
           </div>
         )}
-      </section>
-
-      {/* Quick actions */}
-      <section className="grid gap-3 sm:grid-cols-3">
-        <QuickAction
-          href="/admin/words/new"
-          icon={Plus}
-          title="Добавить слово"
-          desc="Создать новую карточку"
-          color="bg-primary/10 text-primary"
-        />
-        <QuickAction
-          href="/admin/suggestions"
-          icon={Lightbulb}
-          title="Предложения"
-          desc={s.pending > 0 ? `${s.pending} ожидают проверки` : 'Нет новых предложений'}
-          color={s.pending > 0 ? 'bg-amber-500/15 text-amber-600' : 'bg-muted text-muted-foreground'}
-          badge={s.pending > 0 ? s.pending : undefined}
-        />
-        <QuickAction
-          href="/admin/analytics"
-          icon={BarChart2}
-          title="Аналитика"
-          desc={`${s.total_views.toLocaleString('ru')} просмотров всего`}
-          color="bg-violet-500/10 text-violet-600"
-        />
       </section>
 
     </div>
