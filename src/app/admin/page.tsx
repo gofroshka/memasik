@@ -4,6 +4,7 @@ import {
   Lightbulb, Plus, ThumbsDown, ThumbsUp, TrendingDown,
   TrendingUp, Eye, Users, BarChart2, Minus,
 } from 'lucide-react'
+import Greeting from './Greeting'
 import Link from 'next/link'
 import { buttonVariants } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -38,22 +39,12 @@ export default async function AdminDashboard() {
 
   const publishedPct = totalWords > 0 ? Math.round((s.published / totalWords) * 100) : 0
 
-  const now = new Date()
-  const greeting =
-    now.getHours() < 12 ? 'Доброе утро' :
-    now.getHours() < 18 ? 'Добрый день' : 'Добрый вечер'
-
   return (
     <div className="space-y-6">
 
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold">{greeting} 👋</h1>
-          <p className="mt-0.5 text-sm text-muted-foreground">
-            {now.toLocaleDateString('ru', { weekday: 'long', day: 'numeric', month: 'long' })}
-          </p>
-        </div>
+        <Greeting />
         <Link
           href="/admin/words/new"
           className={cn(buttonVariants({ size: 'sm' }), 'shrink-0 gap-1.5')}
