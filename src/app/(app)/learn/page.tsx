@@ -3,9 +3,10 @@ import Link from 'next/link'
 import WordCard from '@/components/WordCard'
 import FlashcardSession from './FlashcardSession'
 import { Word } from '@/lib/types'
-import { Input } from '@/components/ui/input'
-import { Button, buttonVariants } from '@/components/ui/button'
-import { ArrowLeft, BookOpen, GraduationCap, Search, X } from 'lucide-react'
+import { buttonVariants } from '@/components/ui/button'
+import { ArrowLeft, BookOpen, GraduationCap, X } from 'lucide-react'
+import { Suspense } from 'react'
+import SearchBar from './SearchBar'
 import { cn } from '@/lib/utils'
 
 interface LearnPageProps {
@@ -97,35 +98,9 @@ export default async function LearnPage({ searchParams }: LearnPageProps) {
       </div>
 
       {/* ─── Search bar ─── */}
-      <form method="get" className="flex gap-2">
-        <div className="relative max-w-lg flex-1">
-          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            name="q"
-            defaultValue={q}
-            type="text"
-            placeholder="Поиск по слову или переводу..."
-            className="pl-9"
-            autoComplete="off"
-          />
-          {category && <input type="hidden" name="category" value={category} />}
-        </div>
-        <Button type="submit" variant="outline" className="shrink-0">
-          Найти
-        </Button>
-        {isFiltered && (
-          <Link
-            href="/learn"
-            className={cn(
-              buttonVariants({ variant: 'ghost', size: 'sm' }),
-              'gap-1.5 text-muted-foreground'
-            )}
-          >
-            <X className="size-3.5" />
-            Сбросить
-          </Link>
-        )}
-      </form>
+      <Suspense>
+        <SearchBar q={q} category={category} />
+      </Suspense>
 
       {/* ─── Category pills ─── */}
       {uniqueCategories.length > 0 && (

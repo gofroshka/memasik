@@ -6,6 +6,7 @@ import { buttonVariants } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 import FeedbackButtons from '@/components/FeedbackButtons'
+import SpeakButton from '@/components/SpeakButton'
 
 interface WordPageProps {
   params: Promise<{ id: string }>
@@ -24,6 +25,9 @@ export default async function WordPage({ params }: WordPageProps) {
   if (!word) notFound()
 
   const { data: { user } } = await supabase.auth.getUser()
+
+  // Track view (fire-and-forget)
+  supabase.from('word_views').insert({ word_id: id, user_id: user?.id ?? null }).then(() => {})
 
   // Adjacent words + feedback in parallel
   const [{ data: prevRows }, { data: nextRows }, { data: feedbackRows }] = await Promise.all([
@@ -150,11 +154,14 @@ export default async function WordPage({ params }: WordPageProps) {
           {/* Full analysis */}
           {word.description && (
             <div className="rounded-2xl bg-primary/6 p-5">
-              <div className="mb-3 flex items-center gap-2">
-                <FileText className="size-3.5 text-primary/60" />
-                <p className="text-[10px] font-extrabold uppercase tracking-widest text-primary/60">
-                  Полный разбор
-                </p>
+              <div className="mb-3 flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <FileText className="size-3.5 text-primary/60" />
+                  <p className="text-[10px] font-extrabold uppercase tracking-widest text-primary/60">
+                    Полный разбор
+                  </p>
+                </div>
+                <SpeakButton text={word.description} />
               </div>
               <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground/90">{word.description}</p>
             </div>
