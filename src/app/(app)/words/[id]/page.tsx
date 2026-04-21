@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, ArrowRight, BookOpen, Brain, FileText, Languages } from 'lucide-react'
+import { ArrowLeft, ArrowRight, BookOpen, Brain, Eye, FileText, Languages } from 'lucide-react'
 import { buttonVariants } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
@@ -39,6 +39,11 @@ export default async function WordPage({ params }: WordPageProps) {
   const upCount = feedbackRows?.filter(f => f.vote === true).length ?? 0
   const downCount = feedbackRows?.filter(f => f.vote === false).length ?? 0
   const userVote = user ? (feedbackRows?.find(f => f.user_id === user.id)?.vote ?? null) : null
+
+  const { count: viewCount } = await supabase
+    .from('word_views')
+    .select('*', { count: 'exact', head: true })
+    .eq('word_id', id)
 
   const prev = prevRows?.[0] ?? null
   const next = nextRows?.[0] ?? null
@@ -119,7 +124,14 @@ export default async function WordPage({ params }: WordPageProps) {
             <p className="text-xs font-extrabold uppercase tracking-widest text-muted-foreground">
               Word card
             </p>
-            <h1 className="text-4xl font-extrabold md:text-5xl">{word.word}</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-4xl font-extrabold md:text-5xl">{word.word}</h1>
+              {(viewCount ?? 0) > 0 && (
+                <span className="flex items-center gap-1 rounded-full border border-border bg-muted/50 px-2 py-0.5 text-xs text-muted-foreground">
+                  <Eye className="size-3" /> {viewCount}
+                </span>
+              )}
+            </div>
             <div className="flex items-center gap-2 text-lg font-bold text-primary">
               <Languages className="size-5" />
               {word.translation}

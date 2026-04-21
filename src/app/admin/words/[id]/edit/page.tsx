@@ -19,7 +19,10 @@ export default async function EditWordPage({ params }: EditWordPageProps) {
 
   return (
     <div className="space-y-6">
-      <Link href="/admin/words" className={cn(buttonVariants({ variant: 'ghost', size: 'sm' }), 'w-fit gap-1.5 px-2 text-muted-foreground')}>
+      <Link
+        href="/admin/words"
+        className={cn(buttonVariants({ variant: 'ghost', size: 'sm' }), 'w-fit gap-1.5 px-2 text-muted-foreground')}
+      >
         <ArrowLeft className="size-3.5" />
         Назад к списку
       </Link>
