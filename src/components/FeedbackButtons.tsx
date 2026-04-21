@@ -17,7 +17,7 @@ export default function FeedbackButtons({ wordId, upCount, downCount, userVote, 
   const [pending, startTransition] = useTransition()
 
   function vote(v: boolean) {
-    startTransition(() => submitFeedbackAction(wordId, v))
+    startTransition(() => { submitFeedbackAction(wordId, v) })
   }
 
   return (
