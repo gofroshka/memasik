@@ -1,6 +1,8 @@
 services:
   app:
-    image: memasik:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
     container_name: memasik
     restart: unless-stopped
     environment:
