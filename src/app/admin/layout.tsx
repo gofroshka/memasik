@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { BookOpen, LayoutDashboard, Shield } from 'lucide-react'
+import { BookOpen, LayoutDashboard, Lightbulb, Shield } from 'lucide-react'
 import AdminSignOut from './AdminSignOut'
 import AdminMobileNav from './AdminMobileNav'
 import { buttonVariants } from '@/components/ui/button'
@@ -73,6 +73,16 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           >
             <BookOpen className="size-4" />
             Слова и карточки
+          </Link>
+          <Link
+            href="/admin/suggestions"
+            className={cn(
+              buttonVariants({ variant: 'ghost', size: 'sm' }),
+              'w-full justify-start gap-2 font-semibold text-muted-foreground hover:text-foreground'
+            )}
+          >
+            <Lightbulb className="size-4" />
+            Предложения
           </Link>
         </nav>
 

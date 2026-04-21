@@ -75,26 +75,75 @@ export default function WordForm({ word }: { word?: Word }) {
             </div>
           </div>
 
-          <div className="space-y-1.5">
-            <Label htmlFor="category">Категория</Label>
-            <Input
-              id="category"
-              type="text"
-              name="category"
-              defaultValue={word?.category ?? ''}
-              placeholder="Фрукты, Животные..."
-            />
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="category">Категория</Label>
+              <Input
+                id="category"
+                type="text"
+                name="category"
+                defaultValue={word?.category ?? ''}
+                placeholder="Фрукты, Животные..."
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="transcription">Транскрипция на русском</Label>
+              <Input
+                id="transcription"
+                type="text"
+                name="transcription"
+                defaultValue={word?.transcription ?? ''}
+                placeholder="пиджн"
+              />
+            </div>
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="description">Описание мнемо-ассоциации *</Label>
+            <Label htmlFor="short_description">Краткое описание</Label>
+            <Input
+              id="short_description"
+              type="text"
+              name="short_description"
+              defaultValue={word?.short_description ?? ''}
+              placeholder="Смех — лавка"
+            />
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="textbook_class">Класс Rainbow English</Label>
+              <Input
+                id="textbook_class"
+                type="number"
+                name="textbook_class"
+                min={1}
+                max={11}
+                defaultValue={word?.textbook_class ?? ''}
+                placeholder="3"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="textbook_page">Страница</Label>
+              <Input
+                id="textbook_page"
+                type="number"
+                name="textbook_page"
+                min={1}
+                defaultValue={word?.textbook_page ?? ''}
+                placeholder="42"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="description">Полный разбор *</Label>
             <Textarea
               id="description"
               name="description"
               required
-              rows={5}
+              rows={6}
               defaultValue={word?.description}
-              placeholder="Представь яблоко, которое умеет говорить по-английски..."
+              placeholder="Смех — слово звучит как «лафтер», похоже на «лавка» — представь лавку, с которой все смеются..."
             />
           </div>
         </div>

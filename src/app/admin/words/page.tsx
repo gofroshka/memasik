@@ -1,17 +1,26 @@
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
-import { Check, Pencil, Plus } from 'lucide-react'
+import { Check, Eye, EyeOff, Pencil, Plus, ThumbsDown, ThumbsUp } from 'lucide-react'
 import DeleteWordButton from './DeleteWordButton'
 import { Badge } from '@/components/ui/badge'
-import { buttonVariants } from '@/components/ui/button'
+import { Button, buttonVariants } from '@/components/ui/button'
+import { togglePublishAction } from '@/app/actions/words'
 import { cn } from '@/lib/utils'
 
 export default async function AdminWordsPage() {
   const supabase = await createClient()
-  const { data: words } = await supabase
-    .from('words')
-    .select('*')
-    .order('created_at', { ascending: false })
+  const [{ data: words }, { data: feedback }] = await Promise.all([
+    supabase.from('words').select('*').order('created_at', { ascending: false }),
+    supabase.from('word_feedback').select('word_id, vote'),
+  ])
+
+  function getVotes(wordId: string) {
+    const rows = feedback?.filter(f => f.word_id === wordId) ?? []
+    return {
+      up: rows.filter(f => f.vote === true).length,
+      down: rows.filter(f => f.vote === false).length,
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -39,6 +48,8 @@ export default async function AdminWordsPage() {
                   <th className="px-5 py-3.5 text-left text-xs font-medium text-muted-foreground">Перевод</th>
                   <th className="px-5 py-3.5 text-left text-xs font-medium text-muted-foreground">Категория</th>
                   <th className="px-5 py-3.5 text-left text-xs font-medium text-muted-foreground">Картинка</th>
+                  <th className="px-5 py-3.5 text-left text-xs font-medium text-muted-foreground">Отзывы</th>
+                  <th className="px-5 py-3.5 text-left text-xs font-medium text-muted-foreground">Статус</th>
                   <th className="px-5 py-3.5 text-right text-xs font-medium text-muted-foreground">Действия</th>
                 </tr>
               </thead>
@@ -60,6 +71,45 @@ export default async function AdminWordsPage() {
                       ) : (
                         <span className="text-muted-foreground/40">—</span>
                       )}
+                    </td>
+                    <td className="px-5 py-4">
+                      {(() => {
+                        const v = getVotes(word.id)
+                        return (
+                          <div className="flex items-center gap-2.5 text-xs">
+                            <span className="flex items-center gap-1 text-green-600">
+                              <ThumbsUp className="size-3" />
+                              {v.up}
+                            </span>
+                            <span className="flex items-center gap-1 text-red-500">
+                              <ThumbsDown className="size-3" />
+                              {v.down}
+                            </span>
+                          </div>
+                        )
+                      })()}
+                    </td>
+                    <td className="px-5 py-4">
+                      <form action={togglePublishAction}>
+                        <input type="hidden" name="id" value={word.id} />
+                        <input type="hidden" name="is_published" value={String(word.is_published)} />
+                        <Button
+                          type="submit"
+                          variant="outline"
+                          size="sm"
+                          className={cn(
+                            'gap-1.5 text-xs',
+                            word.is_published
+                              ? 'text-green-600 border-green-500/30'
+                              : 'text-muted-foreground'
+                          )}
+                        >
+                          {word.is_published
+                            ? <><Eye className="size-3" /> Опубликовано</>
+                            : <><EyeOff className="size-3" /> Черновик</>
+                          }
+                        </Button>
+                      </form>
                     </td>
                     <td className="px-5 py-4">
                       <div className="flex items-center justify-end gap-1.5">

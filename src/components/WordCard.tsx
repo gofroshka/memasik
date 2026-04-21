@@ -5,6 +5,8 @@ import { Card } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 
 export default function WordCard({ word }: { word: Word }) {
+  const hint = word.short_description
+
   return (
     <Link href={`/words/${word.id}`} className="group block">
       <Card
@@ -27,12 +29,6 @@ export default function WordCard({ word }: { word: Word }) {
               <Brain className="size-8 text-primary/20" />
             </div>
           )}
-
-          {word.category && (
-            <span className="absolute left-3 top-3 inline-flex rounded-full bg-background/90 px-2.5 py-1 text-xs font-semibold backdrop-blur-sm">
-              {word.category}
-            </span>
-          )}
         </div>
 
         {/* Content */}
@@ -42,9 +38,9 @@ export default function WordCard({ word }: { word: Word }) {
             <Languages className="size-3.5 shrink-0" />
             <span className="truncate font-semibold">{word.translation}</span>
           </div>
-          {word.description && (
-            <p className="mt-2.5 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
-              {word.description}
+          {hint && (
+            <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
+              {hint}
             </p>
           )}
         </div>

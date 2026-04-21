@@ -1,10 +1,11 @@
 import { createClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, ArrowRight, Brain, Languages } from 'lucide-react'
+import { ArrowLeft, ArrowRight, BookOpen, Brain, FileText, Languages } from 'lucide-react'
 import { buttonVariants } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
+import FeedbackButtons from '@/components/FeedbackButtons'
 
 interface WordPageProps {
   params: Promise<{ id: string }>
@@ -22,11 +23,18 @@ export default async function WordPage({ params }: WordPageProps) {
 
   if (!word) notFound()
 
-  // Adjacent words for prev/next
-  const [{ data: prevRows }, { data: nextRows }] = await Promise.all([
+  const { data: { user } } = await supabase.auth.getUser()
+
+  // Adjacent words + feedback in parallel
+  const [{ data: prevRows }, { data: nextRows }, { data: feedbackRows }] = await Promise.all([
     supabase.from('words').select('id, word').lt('word', word.word).order('word', { ascending: false }).limit(1),
     supabase.from('words').select('id, word').gt('word', word.word).order('word', { ascending: true }).limit(1),
+    supabase.from('word_feedback').select('vote, user_id').eq('word_id', id),
   ])
+
+  const upCount = feedbackRows?.filter(f => f.vote === true).length ?? 0
+  const downCount = feedbackRows?.filter(f => f.vote === false).length ?? 0
+  const userVote = user ? (feedbackRows?.find(f => f.user_id === user.id)?.vote ?? null) : null
 
   const prev = prevRows?.[0] ?? null
   const next = nextRows?.[0] ?? null
@@ -83,13 +91,13 @@ export default async function WordPage({ params }: WordPageProps) {
       {/* ─── Word card ─── */}
       <Card className="gap-0 overflow-hidden p-0">
         {/* Image */}
-        <div className="relative aspect-video overflow-hidden bg-muted">
+        <div className="relative overflow-hidden bg-muted">
           {word.image_url ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={word.image_url}
               alt={`Ассоциация для слова ${word.word}`}
-              className="h-full w-full object-cover"
+              className="w-full object-contain"
             />
           ) : (
             <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-gradient-to-br from-primary/8 to-secondary">
@@ -98,11 +106,6 @@ export default async function WordPage({ params }: WordPageProps) {
             </div>
           )}
 
-          {word.category && (
-            <span className="absolute left-4 top-4 inline-flex rounded-full bg-background/90 px-3 py-1 text-xs font-semibold backdrop-blur-sm">
-              {word.category}
-            </span>
-          )}
         </div>
 
         {/* Content */}
@@ -116,18 +119,57 @@ export default async function WordPage({ params }: WordPageProps) {
             <div className="flex items-center gap-2 text-lg font-bold text-primary">
               <Languages className="size-5" />
               {word.translation}
+              {word.transcription && (
+                <span className="text-sm font-normal text-muted-foreground">[{word.transcription}]</span>
+              )}
             </div>
           </div>
 
-          {/* Mnemonic */}
-          {word.description && (
-            <div className="rounded-2xl bg-primary/6 p-5">
-              <p className="mb-2 text-[10px] font-extrabold uppercase tracking-widest text-primary/60">
-                Мнемо-ассоциация
-              </p>
-              <p className="text-sm leading-relaxed text-foreground/90">{word.description}</p>
+          {/* Short description */}
+          {word.short_description && (
+            <p className="text-base leading-relaxed text-muted-foreground">{word.short_description}</p>
+          )}
+
+          {/* Textbook reference */}
+          {(word.textbook_class || word.textbook_page) && (
+            <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/30 px-3 py-2 text-xs">
+              <BookOpen className="size-3.5 shrink-0 text-muted-foreground" />
+              <span className="text-muted-foreground">Rainbow English</span>
+              {word.textbook_class && (
+                <span className="font-semibold text-foreground">{word.textbook_class} класс</span>
+              )}
+              {word.textbook_page && (
+                <>
+                  <span className="text-muted-foreground">·</span>
+                  <span className="text-muted-foreground">стр. <span className="font-semibold text-foreground">{word.textbook_page}</span></span>
+                </>
+              )}
             </div>
           )}
+
+          {/* Full analysis */}
+          {word.description && (
+            <div className="rounded-2xl bg-primary/6 p-5">
+              <div className="mb-3 flex items-center gap-2">
+                <FileText className="size-3.5 text-primary/60" />
+                <p className="text-[10px] font-extrabold uppercase tracking-widest text-primary/60">
+                  Полный разбор
+                </p>
+              </div>
+              <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground/90">{word.description}</p>
+            </div>
+          )}
+
+          {/* Feedback */}
+          <div className="rounded-2xl border border-border p-5">
+            <FeedbackButtons
+              wordId={word.id}
+              upCount={upCount}
+              downCount={downCount}
+              userVote={userVote}
+              isAuthenticated={!!user}
+            />
+          </div>
 
           {/* Usage tips */}
           <div className="rounded-2xl border border-border p-4">

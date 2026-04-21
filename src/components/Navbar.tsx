@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { BookOpen, LogOut, Shield } from 'lucide-react'
+import { BookOpen, Lightbulb, LogOut, Shield } from 'lucide-react'
 import { signOutAction } from '@/app/actions/auth'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -22,6 +22,15 @@ export default function Navbar({ userRole, userEmail }: NavbarProps) {
         </Link>
 
         <div className="flex items-center gap-2">
+          {userEmail && (
+            <Link
+              href="/suggest"
+              className={cn(buttonVariants({ variant: 'ghost', size: 'sm' }), 'gap-1.5 text-xs')}
+            >
+              <Lightbulb className="size-3" />
+              Предложить
+            </Link>
+          )}
           {userRole === 'admin' && (
             <Link
               href="/admin"
