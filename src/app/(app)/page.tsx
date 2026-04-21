@@ -50,8 +50,8 @@ export default async function HomePage() {
   const supabase = await createClient()
 
   const [{ count: total }, { data: catRows }] = await Promise.all([
-    supabase.from('words').select('*', { count: 'exact', head: true }),
-    supabase.from('words').select('category').not('category', 'is', null),
+    supabase.from('words').select('*', { count: 'exact', head: true }).eq('is_published', true),
+    supabase.from('words').select('category').eq('is_published', true).not('category', 'is', null),
   ])
 
   const categoryCounts = (catRows ?? []).reduce<Record<string, number>>((acc, row) => {

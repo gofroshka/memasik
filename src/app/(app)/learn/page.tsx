@@ -17,7 +17,7 @@ export default async function LearnPage({ searchParams }: LearnPageProps) {
   const { q, category, mode } = await searchParams
   const supabase = await createClient()
 
-  let query = supabase.from('words').select('*').order('word')
+  let query = supabase.from('words').select('*').eq('is_published', true).order('word')
   if (q) query = query.or(`word.ilike.%${q}%,translation.ilike.%${q}%`)
   if (category) query = query.eq('category', category)
 
@@ -42,6 +42,7 @@ export default async function LearnPage({ searchParams }: LearnPageProps) {
   const { data: catRows } = await supabase
     .from('words')
     .select('category')
+    .eq('is_published', true)
     .not('category', 'is', null)
 
   const uniqueCategories = [...new Set((catRows ?? []).map(c => c.category).filter(Boolean))] as string[]
