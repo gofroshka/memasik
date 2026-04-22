@@ -26,11 +26,17 @@ export default async function LearnPage({ searchParams }: LearnPageProps) {
 
   const { data: words } = await query
 
+  // ─── Build current filter params (reused for practice & back links) ───
+  const filterParams = new URLSearchParams()
+  if (q) filterParams.set('q', q)
+  if (category) filterParams.set('category', category)
+  if (textbook_class) filterParams.set('textbook_class', textbook_class)
+  if (textbook_part) filterParams.set('textbook_part', textbook_part)
+  if (textbook_page) filterParams.set('textbook_page', textbook_page)
+
   // ─── FLASHCARD MODE ─────────────────────────────────────────────
   if (mode === 'practice' && words && words.length > 0) {
-    const backHref = category
-      ? `/learn?category=${encodeURIComponent(category)}`
-      : '/learn'
+    const backHref = filterParams.size ? `/learn?${filterParams}` : '/learn'
 
     return (
       <FlashcardSession
@@ -96,11 +102,7 @@ export default async function LearnPage({ searchParams }: LearnPageProps) {
         {/* Practice button — shown when there are words */}
         {totalCount > 0 && (
           <Link
-            href={
-              category
-                ? `/learn?category=${encodeURIComponent(category)}&mode=practice`
-                : `/learn?mode=practice`
-            }
+            href={`/learn?${new URLSearchParams([...filterParams, ['mode', 'practice']])}`}
             className={cn(buttonVariants({ size: 'lg' }), 'shrink-0 gap-2 rounded-xl font-bold')}
           >
             <GraduationCap className="size-5" />
