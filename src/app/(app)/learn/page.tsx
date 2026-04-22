@@ -10,16 +10,19 @@ import SearchBar from './SearchBar'
 import { cn } from '@/lib/utils'
 
 interface LearnPageProps {
-  searchParams: Promise<{ q?: string; category?: string; mode?: string }>
+  searchParams: Promise<{ q?: string; category?: string; mode?: string; textbook_class?: string; textbook_part?: string; textbook_page?: string }>
 }
 
 export default async function LearnPage({ searchParams }: LearnPageProps) {
-  const { q, category, mode } = await searchParams
+  const { q, category, mode, textbook_class, textbook_part, textbook_page } = await searchParams
   const supabase = await createClient()
 
   let query = supabase.from('words').select('*').eq('is_published', true).order('word')
   if (q) query = query.or(`word.ilike.%${q}%,translation.ilike.%${q}%`)
   if (category) query = query.eq('category', category)
+  if (textbook_class) query = query.eq('textbook_class', parseInt(textbook_class))
+  if (textbook_part) query = query.eq('textbook_part', parseInt(textbook_part))
+  if (textbook_page) query = query.eq('textbook_page', parseInt(textbook_page))
 
   const { data: words } = await query
 
@@ -47,7 +50,15 @@ export default async function LearnPage({ searchParams }: LearnPageProps) {
 
   const uniqueCategories = [...new Set((catRows ?? []).map(c => c.category).filter(Boolean))] as string[]
 
-  const isFiltered = !!(q || category)
+  const { data: classRows } = await supabase
+    .from('words')
+    .select('textbook_class')
+    .eq('is_published', true)
+    .not('textbook_class', 'is', null)
+
+  const availableClasses = [...new Set((classRows ?? []).map(r => r.textbook_class).filter(Boolean))].sort((a, b) => a - b) as number[]
+
+  const isFiltered = !!(q || category || textbook_class || textbook_part || textbook_page)
   const totalCount = words?.length ?? 0
 
   return (
@@ -100,7 +111,14 @@ export default async function LearnPage({ searchParams }: LearnPageProps) {
 
       {/* ─── Search bar ─── */}
       <Suspense>
-        <SearchBar q={q} category={category} />
+        <SearchBar
+          q={q}
+          category={category}
+          textbookClass={textbook_class}
+          textbookPart={textbook_part}
+          textbookPage={textbook_page}
+          availableClasses={availableClasses}
+        />
       </Suspense>
 
       {/* ─── Category pills ─── */}
