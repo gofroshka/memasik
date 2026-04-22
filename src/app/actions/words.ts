@@ -19,6 +19,8 @@ export async function saveWordAction(prevState: string | null, formData: FormDat
   const textbookPage = textbookPageRaw ? parseInt(textbookPageRaw, 10) : null
   const textbookClassRaw = (formData.get('textbook_class') as string | null)?.trim()
   const textbookClass = textbookClassRaw ? parseInt(textbookClassRaw, 10) : null
+  const textbookPartRaw = (formData.get('textbook_part') as string | null)?.trim()
+  const textbookPart = textbookPartRaw ? parseInt(textbookPartRaw, 10) : null
   const shortDescription = (formData.get('short_description') as string | null)?.trim() || null
   const fullAnalysis = (formData.get('full_analysis') as string | null)?.trim() || null
 
@@ -54,6 +56,7 @@ export async function saveWordAction(prevState: string | null, formData: FormDat
     image_url: finalImageUrl || null,
     textbook_page: textbookPage,
     textbook_class: textbookClass,
+    textbook_part: textbookPart,
     short_description: shortDescription,
     full_analysis: fullAnalysis,
     updated_at: new Date().toISOString(),

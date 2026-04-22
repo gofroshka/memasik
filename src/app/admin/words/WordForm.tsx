@@ -109,7 +109,7 @@ export default function WordForm({ word }: { word?: Word }) {
             />
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-4 sm:grid-cols-3">
             <div className="space-y-1.5">
               <Label htmlFor="textbook_class">Класс Rainbow English</Label>
               <Input
@@ -120,6 +120,18 @@ export default function WordForm({ word }: { word?: Word }) {
                 max={11}
                 defaultValue={word?.textbook_class ?? ''}
                 placeholder="3"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="textbook_part">Часть</Label>
+              <Input
+                id="textbook_part"
+                type="number"
+                name="textbook_part"
+                min={1}
+                max={2}
+                defaultValue={word?.textbook_part ?? ''}
+                placeholder="1"
               />
             </div>
             <div className="space-y-1.5">

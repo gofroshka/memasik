@@ -154,6 +154,12 @@ export default async function WordPage({ params }: WordPageProps) {
               {word.textbook_class && (
                 <span className="font-semibold text-foreground">{word.textbook_class} класс</span>
               )}
+              {word.textbook_part && (
+                <>
+                  <span className="text-muted-foreground">·</span>
+                  <span className="text-muted-foreground">ч. <span className="font-semibold text-foreground">{word.textbook_part}</span></span>
+                </>
+              )}
               {word.textbook_page && (
                 <>
                   <span className="text-muted-foreground">·</span>

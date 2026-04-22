@@ -18,6 +18,7 @@ export interface Word {
   is_published: boolean
   textbook_page: number | null
   textbook_class: number | null
+  textbook_part: number | null
   short_description: string | null
   full_analysis: string | null
   created_at: string
