@@ -8,6 +8,7 @@ import { ArrowLeft, BookOpen, GraduationCap, X } from 'lucide-react'
 import { Suspense } from 'react'
 import SearchBar from './SearchBar'
 import { cn } from '@/lib/utils'
+import { getPublishedWords, getUniqueCategories, getAvailableClasses } from '@/lib/repository/words'
 
 interface LearnPageProps {
   searchParams: Promise<{ q?: string; category?: string; mode?: string; textbook_class?: string; textbook_part?: string; textbook_page?: string }>
@@ -17,14 +18,7 @@ export default async function LearnPage({ searchParams }: LearnPageProps) {
   const { q, category, mode, textbook_class, textbook_part, textbook_page } = await searchParams
   const supabase = await createClient()
 
-  let query = supabase.from('words').select('*').eq('is_published', true).order('word')
-  if (q) query = query.or(`word.ilike.%${q}%,translation.ilike.%${q}%`)
-  if (category) query = query.eq('category', category)
-  if (textbook_class) query = query.eq('textbook_class', parseInt(textbook_class))
-  if (textbook_part) query = query.eq('textbook_part', parseInt(textbook_part))
-  if (textbook_page) query = query.eq('textbook_page', parseInt(textbook_page))
-
-  const { data: words } = await query
+  const words = await getPublishedWords(supabase, { q, category, textbook_class, textbook_part, textbook_page })
 
   // ─── Build current filter params (reused for practice & back links) ───
   const filterParams = new URLSearchParams()
@@ -35,37 +29,19 @@ export default async function LearnPage({ searchParams }: LearnPageProps) {
   if (textbook_page) filterParams.set('textbook_page', textbook_page)
 
   // ─── FLASHCARD MODE ─────────────────────────────────────────────
-  if (mode === 'practice' && words && words.length > 0) {
+  if (mode === 'practice' && words.length > 0) {
     const backHref = filterParams.size ? `/learn?${filterParams}` : '/learn'
-
-    return (
-      <FlashcardSession
-        words={words as Word[]}
-        category={category}
-        backHref={backHref}
-      />
-    )
+    return <FlashcardSession words={words} category={category} backHref={backHref} />
   }
 
   // ─── BROWSE MODE ────────────────────────────────────────────────
-  const { data: catRows } = await supabase
-    .from('words')
-    .select('category')
-    .eq('is_published', true)
-    .not('category', 'is', null)
-
-  const uniqueCategories = [...new Set((catRows ?? []).map(c => c.category).filter(Boolean))] as string[]
-
-  const { data: classRows } = await supabase
-    .from('words')
-    .select('textbook_class')
-    .eq('is_published', true)
-    .not('textbook_class', 'is', null)
-
-  const availableClasses = [...new Set((classRows ?? []).map(r => r.textbook_class).filter(Boolean))].sort((a, b) => a - b) as number[]
+  const [uniqueCategories, availableClasses] = await Promise.all([
+    getUniqueCategories(supabase),
+    getAvailableClasses(supabase),
+  ])
 
   const isFiltered = !!(q || category || textbook_class || textbook_part || textbook_page)
-  const totalCount = words?.length ?? 0
+  const totalCount = words.length
 
   return (
     <div className="mx-auto max-w-5xl space-y-8 px-4 py-8">
@@ -99,7 +75,6 @@ export default async function LearnPage({ searchParams }: LearnPageProps) {
           )}
         </div>
 
-        {/* Practice button — shown when there are words */}
         {totalCount > 0 && (
           <Link
             href={`/learn?${new URLSearchParams([...filterParams, ['mode', 'practice']])}`}
@@ -155,9 +130,9 @@ export default async function LearnPage({ searchParams }: LearnPageProps) {
       )}
 
       {/* ─── Word grid ─── */}
-      {words && words.length > 0 ? (
+      {words.length > 0 ? (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {(words as Word[]).map(word => (
+          {words.map(word => (
             <WordCard key={word.id} word={word} />
           ))}
         </div>

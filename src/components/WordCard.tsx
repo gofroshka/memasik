@@ -1,8 +1,9 @@
 import Link from 'next/link'
-import { Brain, Languages } from 'lucide-react'
+import { Languages } from 'lucide-react'
 import { Word } from '@/lib/types'
 import { Card } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
+import ImageWithFallback from '@/components/ImageWithFallback'
 
 export default function WordCard({ word }: { word: Word }) {
   const hint = word.short_description
@@ -17,18 +18,11 @@ export default function WordCard({ word }: { word: Word }) {
       >
         {/* Image */}
         <div className="relative aspect-[16/10] overflow-hidden bg-muted">
-          {word.image_url ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={word.image_url}
-              alt={word.word}
-              className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
-            />
-          ) : (
-            <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary/8 to-secondary">
-              <Brain className="size-8 text-primary/20" />
-            </div>
-          )}
+          <ImageWithFallback
+            src={word.image_url}
+            alt={word.word}
+            imgClassName="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
+          />
         </div>
 
         {/* Content */}

@@ -1,6 +1,6 @@
 'use client'
 
-import { useActionState, useRef, useState } from 'react'
+import { useActionState, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Word } from '@/lib/types'
 import { ImagePlus, Link2, Upload, X } from 'lucide-react'
@@ -24,6 +24,12 @@ export default function WordForm({ word }: { word?: Word }) {
   const preview = imageState.type !== 'none'
     ? (imageState.type === 'url' ? imageState.url : imageState.preview)
     : ''
+
+  useEffect(() => {
+    if (imageState.type === 'file') {
+      return () => URL.revokeObjectURL(imageState.preview)
+    }
+  }, [imageState])
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]

@@ -1,12 +1,14 @@
 import { createClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, ArrowRight, BookOpen, Brain, Eye, FileText, Languages } from 'lucide-react'
+import { ArrowLeft, ArrowRight, BookOpen, Eye, FileText, Languages } from 'lucide-react'
 import { buttonVariants } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 import FeedbackButtons from '@/components/FeedbackButtons'
 import SpeakButton from '@/components/SpeakButton'
+import ImageWithFallback from '@/components/ImageWithFallback'
+import { getWordById, getAdjacentWords } from '@/lib/repository/words'
 
 interface WordPageProps {
   params: Promise<{ id: string }>
@@ -16,12 +18,7 @@ export default async function WordPage({ params }: WordPageProps) {
   const { id } = await params
   const supabase = await createClient()
 
-  const { data: word } = await supabase
-    .from('words')
-    .select('*')
-    .eq('id', id)
-    .single()
-
+  const word = await getWordById(supabase, id)
   if (!word) notFound()
 
   const { data: { user } } = await supabase.auth.getUser()
@@ -29,24 +26,15 @@ export default async function WordPage({ params }: WordPageProps) {
   // Track view (fire-and-forget)
   supabase.from('word_views').insert({ word_id: id, user_id: user?.id ?? null }).then(() => {})
 
-  // Adjacent words + feedback in parallel
-  const [{ data: prevRows }, { data: nextRows }, { data: feedbackRows }] = await Promise.all([
-    supabase.from('words').select('id, word').lt('word', word.word).order('word', { ascending: false }).limit(1),
-    supabase.from('words').select('id, word').gt('word', word.word).order('word', { ascending: true }).limit(1),
+  const [{ prev, next }, { data: feedbackRows }, { count: viewCount }] = await Promise.all([
+    getAdjacentWords(supabase, word.word),
     supabase.from('word_feedback').select('vote, user_id').eq('word_id', id),
+    supabase.from('word_views').select('*', { count: 'exact', head: true }).eq('word_id', id),
   ])
 
   const upCount = feedbackRows?.filter(f => f.vote === true).length ?? 0
   const downCount = feedbackRows?.filter(f => f.vote === false).length ?? 0
   const userVote = user ? (feedbackRows?.find(f => f.user_id === user.id)?.vote ?? null) : null
-
-  const { count: viewCount } = await supabase
-    .from('word_views')
-    .select('*', { count: 'exact', head: true })
-    .eq('word_id', id)
-
-  const prev = prevRows?.[0] ?? null
-  const next = nextRows?.[0] ?? null
 
   const backHref = word.category
     ? `/learn?category=${encodeURIComponent(word.category)}`
@@ -101,20 +89,13 @@ export default async function WordPage({ params }: WordPageProps) {
       <Card className="gap-0 overflow-hidden p-0">
         {/* Image */}
         <div className="relative overflow-hidden bg-muted">
-          {word.image_url ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={word.image_url}
-              alt={`Ассоциация для слова ${word.word}`}
-              className="w-full object-contain"
-            />
-          ) : (
-            <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-gradient-to-br from-primary/8 to-secondary">
-              <Brain className="size-12 text-primary/20" />
-              <p className="text-xs text-muted-foreground">Изображение не добавлено</p>
-            </div>
-          )}
-
+          <ImageWithFallback
+            src={word.image_url}
+            alt={`Ассоциация для слова ${word.word}`}
+            imgClassName="w-full object-contain"
+            fallbackIconSize="size-12"
+            noImageText="Изображение не добавлено"
+          />
         </div>
 
         {/* Content */}

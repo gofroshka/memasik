@@ -1,9 +1,9 @@
 'use client'
 
-import { useActionState } from 'react'
+import { useActionState, useState } from 'react'
 import Link from 'next/link'
 import { registerAction } from '@/app/actions/auth'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Eye, EyeOff } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label'
 
 export default function RegisterPage() {
   const [error, formAction, pending] = useActionState(registerAction, null)
+  const [showPassword, setShowPassword] = useState(false)
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4 py-10">
@@ -68,16 +69,26 @@ export default function RegisterPage() {
 
               <div className="space-y-1.5">
                 <Label htmlFor="password" className="font-semibold">Пароль</Label>
-                <Input
-                  id="password"
-                  name="password"
-                  type="password"
-                  required
-                  minLength={6}
-                  placeholder="Минимум 6 символов"
-                  autoComplete="new-password"
-                  className="h-10"
-                />
+                <div className="relative">
+                  <Input
+                    id="password"
+                    name="password"
+                    type={showPassword ? 'text' : 'password'}
+                    required
+                    minLength={6}
+                    placeholder="Минимум 6 символов"
+                    autoComplete="new-password"
+                    className="h-10 pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(v => !v)}
+                    className="absolute inset-y-0 right-0 flex items-center px-3 text-muted-foreground hover:text-foreground"
+                    tabIndex={-1}
+                  >
+                    {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                  </button>
+                </div>
               </div>
 
               {error && (

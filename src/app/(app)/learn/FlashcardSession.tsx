@@ -2,10 +2,11 @@
 
 import { useState, useCallback } from 'react'
 import Link from 'next/link'
-import { ArrowLeft, Brain, Check, RotateCcw } from 'lucide-react'
+import { ArrowLeft, Check, RotateCcw } from 'lucide-react'
 import { Word } from '@/lib/types'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import ImageWithFallback from '@/components/ImageWithFallback'
 
 interface FlashcardSessionProps {
   words: Word[]
@@ -126,19 +127,12 @@ export default function FlashcardSession({ words, category, backHref }: Flashcar
             {/* ── Front: guess the translation ── */}
             <div className="card-face absolute inset-0 flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-lg">
               <div className="relative flex-1 overflow-hidden bg-muted">
-                {word.image_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={word.image_url}
-                    alt={word.word}
-                    className="h-full w-full object-cover"
-                    draggable={false}
-                  />
-                ) : (
-                  <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-gradient-to-br from-primary/8 to-secondary">
-                    <Brain className="size-12 text-primary/25" />
-                  </div>
-                )}
+                <ImageWithFallback
+                  src={word.image_url}
+                  alt={word.word}
+                  imgClassName="h-full w-full object-cover"
+                  fallbackIconSize="size-12"
+                />
                 {category && (
                   <div className="absolute left-3 top-3">
                     <span className="inline-flex rounded-full bg-background/90 px-2.5 py-1 text-xs font-semibold backdrop-blur-sm">

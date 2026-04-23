@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import { Check, Eye, EyeOff, Pencil, Plus, ThumbsDown, ThumbsUp } from 'lucide-react'
 import DeleteWordButton from './DeleteWordButton'
+import TextbookInlineEdit from './TextbookInlineEdit'
 import { Badge } from '@/components/ui/badge'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { togglePublishAction } from '@/app/actions/words'
@@ -48,6 +49,7 @@ export default async function AdminWordsPage() {
                   <th className="px-5 py-3.5 text-left text-xs font-medium text-muted-foreground">Перевод</th>
                   <th className="px-5 py-3.5 text-left text-xs font-medium text-muted-foreground">Категория</th>
                   <th className="px-5 py-3.5 text-left text-xs font-medium text-muted-foreground">Картинка</th>
+                  <th className="px-5 py-3.5 text-left text-xs font-medium text-muted-foreground">Учебник</th>
                   <th className="px-5 py-3.5 text-left text-xs font-medium text-muted-foreground">Отзывы</th>
                   <th className="px-5 py-3.5 text-left text-xs font-medium text-muted-foreground">Статус</th>
                   <th className="px-5 py-3.5 text-right text-xs font-medium text-muted-foreground">Действия</th>
@@ -71,6 +73,14 @@ export default async function AdminWordsPage() {
                       ) : (
                         <span className="text-muted-foreground/40">—</span>
                       )}
+                    </td>
+                    <td className="px-5 py-4">
+                      <TextbookInlineEdit
+                        wordId={word.id}
+                        textbookClass={word.textbook_class}
+                        textbookPart={word.textbook_part}
+                        textbookPage={word.textbook_page}
+                      />
                     </td>
                     <td className="px-5 py-4">
                       {(() => {
@@ -159,6 +169,15 @@ export default async function AdminWordsPage() {
                         </Badge>
                       )}
                     </div>
+                  </div>
+
+                  <div className="pt-1">
+                    <TextbookInlineEdit
+                      wordId={word.id}
+                      textbookClass={word.textbook_class}
+                      textbookPart={word.textbook_part}
+                      textbookPage={word.textbook_page}
+                    />
                   </div>
 
                   <div className="flex items-center justify-between gap-2 pt-1 border-t border-border">

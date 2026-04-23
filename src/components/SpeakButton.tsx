@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Square, Volume2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-export default function SpeakButton({ text }: { text: string }) {
+export default function SpeakButton({ text, lang = 'ru-RU' }: { text: string; lang?: string }) {
   const [speaking, setSpeaking] = useState(false)
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null)
 
@@ -22,7 +22,7 @@ export default function SpeakButton({ text }: { text: string }) {
     }
 
     const utterance = new SpeechSynthesisUtterance(text)
-    utterance.lang = 'ru-RU'
+    utterance.lang = lang
     utterance.rate = 0.9
     utterance.onend = () => setSpeaking(false)
     utterance.onerror = () => setSpeaking(false)

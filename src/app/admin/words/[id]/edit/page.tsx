@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 import { buttonVariants } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { getWordById } from '@/lib/repository/words'
 
 interface EditWordPageProps {
   params: Promise<{ id: string }>
@@ -14,7 +15,7 @@ export default async function EditWordPage({ params }: EditWordPageProps) {
   const { id } = await params
   const supabase = await createClient()
 
-  const { data: word } = await supabase.from('words').select('*').eq('id', id).single()
+  const word = await getWordById(supabase, id)
   if (!word) notFound()
 
   return (
