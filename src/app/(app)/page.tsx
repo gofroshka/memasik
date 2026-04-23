@@ -80,6 +80,17 @@ export default async function HomePage() {
       {/* ─── Category grid ─── */}
       {hasCategories ? (
         <section className="space-y-4">
+          {/* Browse all */}
+          <div className="text-center">
+            <Link
+              href="/learn"
+              className={cn(buttonVariants({ variant: 'ghost', size: 'sm' }), 'gap-1.5 text-muted-foreground')}
+            >
+              <BookOpen className="size-3.5" />
+              Все {total ?? 0} слов в одном списке
+            </Link>
+          </div>
+
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
             {categories.map(([cat, count], i) => {
               const color = CATEGORY_COLORS[i % CATEGORY_COLORS.length]
@@ -103,17 +114,6 @@ export default async function HomePage() {
                 </Link>
               )
             })}
-          </div>
-
-          {/* Browse all */}
-          <div className="pt-2 text-center">
-            <Link
-              href="/learn"
-              className={cn(buttonVariants({ variant: 'ghost', size: 'sm' }), 'gap-1.5 text-muted-foreground')}
-            >
-              <BookOpen className="size-3.5" />
-              Все {total ?? 0} слов в одном списке
-            </Link>
           </div>
         </section>
       ) : (

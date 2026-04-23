@@ -64,6 +64,70 @@ export async function saveWordAction(prevState: string | null, formData: FormDat
   redirect('/admin/words')
 }
 
+export async function createWordInlineAction(formData: FormData): Promise<string | null> {
+  const supabase = await createClient()
+  const word = getString(formData, 'word')
+  const translation = getString(formData, 'translation')
+
+  const { error } = await supabase.from('words').insert({
+    word,
+    translation,
+    description: '',
+    category: getOptionalString(formData, 'category'),
+    transcription: getOptionalString(formData, 'transcription'),
+    textbook_class: getOptionalInt(formData, 'textbook_class'),
+    textbook_part: getOptionalInt(formData, 'textbook_part'),
+    textbook_page: getOptionalInt(formData, 'textbook_page'),
+    is_published: false,
+  })
+
+  if (error) return error.message
+  revalidatePath('/admin/words')
+  return null
+}
+
+export async function updateWordImageAction(formData: FormData) {
+  const supabase = await createClient()
+  const id = getString(formData, 'id')
+  const imageFile = formData.get('image_file') as File | null
+  let imageUrl = getOptionalString(formData, 'image_url')
+
+  if (imageFile && imageFile.size > 0) {
+    const ext = imageFile.name.split('.').pop()
+    const fileName = `${Date.now()}.${ext}`
+    const buffer = Buffer.from(await imageFile.arrayBuffer())
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from('word-images')
+      .upload(fileName, buffer, { contentType: imageFile.type, upsert: true })
+    if (uploadError) throw new Error(uploadError.message)
+    const { data: urlData } = supabase.storage.from('word-images').getPublicUrl(uploadData.path)
+    imageUrl = urlData.publicUrl
+  }
+
+  const { error } = await supabase
+    .from('words')
+    .update({ image_url: imageUrl ?? null, updated_at: new Date().toISOString() })
+    .eq('id', id)
+  if (error) throw new Error(error.message)
+  revalidatePath('/admin/words')
+}
+
+export async function patchWordAction(formData: FormData) {
+  const supabase = await createClient()
+  const id = getString(formData, 'id')
+  const field = getString(formData, 'field')
+  const ALLOWED = ['word', 'translation', 'category', 'transcription'] as const
+  if (!ALLOWED.includes(field as typeof ALLOWED[number]))
+    throw new Error(`Field "${field}" is not patchable`)
+  const value = getOptionalString(formData, 'value')
+  const { error } = await supabase
+    .from('words')
+    .update({ [field]: value, updated_at: new Date().toISOString() })
+    .eq('id', id)
+  if (error) throw new Error(error.message)
+  revalidatePath('/admin/words')
+}
+
 export async function updateTextbookFieldsAction(formData: FormData) {
   const supabase = await createClient()
   const id = getString(formData, 'id')
