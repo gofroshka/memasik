@@ -49,11 +49,11 @@ export default function WordsClient({ words }: Props) {
 
         <div className="flex items-center gap-2">
           {/* Mode toggle — desktop only */}
-          <div className="hidden overflow-hidden rounded-lg border border-border md:inline-flex">
+          <div className="hidden overflow-hidden rounded-full border border-border md:inline-flex">
             <button
               onClick={() => switchMode('list')}
               className={cn(
-                'flex items-center gap-1.5 px-3 py-1.5 text-xs transition-colors',
+                'flex items-center gap-1.5 px-4 py-1.5 text-sm transition-colors',
                 mode === 'list' ? 'bg-muted font-medium text-foreground' : 'text-muted-foreground hover:text-foreground'
               )}
             >
@@ -63,7 +63,7 @@ export default function WordsClient({ words }: Props) {
             <button
               onClick={() => switchMode('table')}
               className={cn(
-                'flex items-center gap-1.5 border-l border-border px-3 py-1.5 text-xs transition-colors',
+                'flex items-center gap-1.5 border-l border-border px-4 py-1.5 text-sm transition-colors',
                 mode === 'table' ? 'bg-muted font-medium text-foreground' : 'text-muted-foreground hover:text-foreground'
               )}
             >

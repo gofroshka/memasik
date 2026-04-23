@@ -17,23 +17,26 @@ interface Props {
   onAddingChange: (v: boolean) => void
 }
 
-const th = 'px-3 py-3 text-left text-[11px] font-medium uppercase tracking-wide text-muted-foreground whitespace-nowrap'
-const td = 'px-3 py-2.5 align-middle'
+const th = 'px-4 py-3 text-left text-[11px] font-medium uppercase tracking-wide text-muted-foreground whitespace-nowrap'
+const td = 'px-4 py-3 align-top'
 
 export default function WordsTableView({ words, adding, onAddingChange }: Props) {
   return (
     <div className="overflow-x-auto rounded-lg border border-border bg-card shadow-sm">
-      <table className="w-full text-sm">
+      <table className="min-w-max w-full text-sm">
         <thead className="border-b border-border bg-muted/40">
           <tr>
-            <th className={th}>Слово</th>
-            <th className={th}>Перевод</th>
-            <th className={th}>Категория</th>
-            <th className={th}>Транскрипция</th>
-            <th className={th}>Учебник</th>
-            <th className={th}>Фото</th>
-            <th className={th}>Статус</th>
-            <th className={`${th} text-right`}>Действия</th>
+            <th className={th} style={{minWidth: 140}}>Слово</th>
+            <th className={th} style={{minWidth: 160}}>Перевод</th>
+            <th className={th} style={{minWidth: 130}}>Категория</th>
+            <th className={th} style={{minWidth: 140}}>Транскрипция</th>
+            <th className={th} style={{minWidth: 200}}>Описание</th>
+            <th className={th} style={{minWidth: 180}}>Короткое описание</th>
+            <th className={th} style={{minWidth: 200}}>Анализ</th>
+            <th className={th} style={{minWidth: 160}}>Учебник</th>
+            <th className={th} style={{minWidth: 100}}>Фото</th>
+            <th className={th} style={{minWidth: 140}}>Статус</th>
+            <th className={`${th} text-right`} style={{minWidth: 60}}>Удалить</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-border">
@@ -43,16 +46,25 @@ export default function WordsTableView({ words, adding, onAddingChange }: Props)
           {words.map(word => (
             <tr key={word.id} className="transition-colors hover:bg-muted/20">
               <td className={td}>
-                <InlineCellEdit wordId={word.id} field="word" value={word.word} inputClassName="w-36" />
+                <InlineCellEdit wordId={word.id} field="word" value={word.word} inputClassName="w-[130px]" />
               </td>
               <td className={td}>
-                <InlineCellEdit wordId={word.id} field="translation" value={word.translation} inputClassName="w-36" />
+                <InlineCellEdit wordId={word.id} field="translation" value={word.translation} inputClassName="w-[150px]" />
               </td>
               <td className={td}>
-                <InlineCellEdit wordId={word.id} field="category" value={word.category} placeholder="—" inputClassName="w-28" />
+                <InlineCellEdit wordId={word.id} field="category" value={word.category} placeholder="—" inputClassName="w-[120px]" />
               </td>
               <td className={td}>
-                <InlineCellEdit wordId={word.id} field="transcription" value={word.transcription} placeholder="—" inputClassName="w-28" />
+                <InlineCellEdit wordId={word.id} field="transcription" value={word.transcription} placeholder="—" inputClassName="w-[130px]" />
+              </td>
+              <td className={td}>
+                <InlineCellEdit wordId={word.id} field="description" value={word.description} placeholder="—" inputClassName="w-[340px]" multiline />
+              </td>
+              <td className={td}>
+                <InlineCellEdit wordId={word.id} field="short_description" value={word.short_description} placeholder="—" inputClassName="w-[300px]" multiline />
+              </td>
+              <td className={td}>
+                <InlineCellEdit wordId={word.id} field="full_analysis" value={word.full_analysis} placeholder="—" inputClassName="w-[380px]" multiline />
               </td>
               <td className={td}>
                 <TextbookInlineEdit
@@ -83,8 +95,8 @@ export default function WordsTableView({ words, adding, onAddingChange }: Props)
                     )}
                   >
                     {word.is_published
-                      ? <><Eye className="size-3" /> Опубликовано</>
-                      : <><EyeOff className="size-3" /> Черновик</>
+                      ? <><Eye className="size-3" /> Опубл.</>
+                      : <><EyeOff className="size-3" /> Черн.</>
                     }
                   </Button>
                 </form>

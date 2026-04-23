@@ -116,7 +116,7 @@ export async function patchWordAction(formData: FormData) {
   const supabase = await createClient()
   const id = getString(formData, 'id')
   const field = getString(formData, 'field')
-  const ALLOWED = ['word', 'translation', 'category', 'transcription'] as const
+  const ALLOWED = ['word', 'translation', 'description', 'category', 'transcription', 'short_description', 'full_analysis'] as const
   if (!ALLOWED.includes(field as typeof ALLOWED[number]))
     throw new Error(`Field "${field}" is not patchable`)
   const value = getOptionalString(formData, 'value')

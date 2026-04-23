@@ -1,5 +1,6 @@
 "use client"
 
+import { useTransition } from 'react'
 import Link from 'next/link'
 import { LayoutDashboard, Lightbulb, LogOut } from 'lucide-react'
 import { signOutAction } from '@/app/actions/auth'
@@ -19,6 +20,7 @@ interface UserMenuProps {
 }
 
 export default function UserMenu({ userRole, userEmail }: UserMenuProps) {
+  const [pending, startTransition] = useTransition()
   const initial = userEmail[0].toUpperCase()
 
   return (
@@ -63,7 +65,8 @@ export default function UserMenu({ userRole, userEmail }: UserMenuProps) {
             <DropdownMenuItem
               variant="destructive"
               className="cursor-pointer gap-3 rounded-lg px-3 py-2.5"
-              onSelect={() => signOutAction()}
+              disabled={pending}
+              onClick={() => startTransition(() => signOutAction())}
             >
               <LogOut className="size-4 shrink-0" />
               <span>Выйти</span>

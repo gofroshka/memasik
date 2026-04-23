@@ -5,21 +5,22 @@ import { patchWordAction } from '@/app/actions/words'
 
 interface Props {
   wordId: string
-  field: 'word' | 'translation' | 'category' | 'transcription'
+  field: 'word' | 'translation' | 'description' | 'category' | 'transcription' | 'short_description' | 'full_analysis'
   value: string | null
   placeholder?: string
   inputClassName?: string
+  multiline?: boolean
 }
 
-export default function InlineCellEdit({ wordId, field, value, placeholder, inputClassName }: Props) {
+export default function InlineCellEdit({ wordId, field, value, placeholder, inputClassName, multiline }: Props) {
   const [editing, setEditing] = useState(false)
   const [pending, startTransition] = useTransition()
   const [localValue, setLocalValue] = useState(value ?? '')
-  const inputRef = useRef<HTMLInputElement>(null)
+  const ref = useRef<HTMLInputElement & HTMLTextAreaElement>(null)
 
   function startEditing() {
     setEditing(true)
-    setTimeout(() => inputRef.current?.focus(), 0)
+    setTimeout(() => ref.current?.focus(), 0)
   }
 
   function save() {
@@ -33,25 +34,39 @@ export default function InlineCellEdit({ wordId, field, value, placeholder, inpu
     })
   }
 
-  function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
-    if (e.key === 'Enter') save()
+  function handleKeyDown(e: React.KeyboardEvent) {
     if (e.key === 'Escape') {
       setLocalValue(value ?? '')
       setEditing(false)
     }
+    if (e.key === 'Enter' && !multiline) save()
+    if (e.key === 'Enter' && multiline && (e.metaKey || e.ctrlKey)) save()
   }
 
+  const baseCls = 'rounded border border-input bg-background px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-ring/50'
+
   if (editing) {
-    return (
+    return multiline ? (
+      <textarea
+        ref={ref as React.RefObject<HTMLTextAreaElement>}
+        value={localValue}
+        onChange={e => setLocalValue(e.target.value)}
+        onBlur={save}
+        onKeyDown={handleKeyDown}
+        placeholder={placeholder}
+        rows={6}
+        className={`${baseCls} resize-y ${inputClassName ?? 'w-48'}`}
+      />
+    ) : (
       <input
-        ref={inputRef}
+        ref={ref as React.RefObject<HTMLInputElement>}
         type="text"
         value={localValue}
         onChange={e => setLocalValue(e.target.value)}
         onBlur={save}
         onKeyDown={handleKeyDown}
         placeholder={placeholder}
-        className={`rounded border border-input bg-background px-2 py-0.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring/50 ${inputClassName ?? 'w-36'}`}
+        className={`${baseCls} ${inputClassName ?? 'w-36'}`}
       />
     )
   }
@@ -63,7 +78,11 @@ export default function InlineCellEdit({ wordId, field, value, placeholder, inpu
       className="group min-w-[2rem] rounded px-1.5 py-1 text-left text-sm transition-colors hover:bg-muted disabled:opacity-50"
     >
       {localValue ? (
-        <span>{localValue}</span>
+        multiline ? (
+          <span className="line-clamp-3 whitespace-pre-wrap text-xs leading-relaxed">{localValue}</span>
+        ) : (
+          <span>{localValue}</span>
+        )
       ) : (
         <span className="text-muted-foreground/30 group-hover:text-muted-foreground/60">—</span>
       )}
