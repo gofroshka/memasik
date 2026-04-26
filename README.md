@@ -1,36 +1,83 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Мемасик — запоминай английские слова через ассоциации
 
-## Getting Started
+**Автор:** Гусе Георгий  
+**Проект:** индивидуальный школьный проект  
+**Сайт:** [memasik.fun](https://memasik.fun)  
+**Репозиторий:** [github.com/gofroshka/memasik](https://github.com/gofroshka/memasik)
 
-First, run the development server:
+---
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## Идея
+
+Трудно учить иностранные слова вызубривая их по списку. Намного эффективнее — связать слово с ярким образом через мнемоническую ассоциацию. Например:
+
+> **Pencil** (карандаш) → «пенсил» → «пенсионер с карандашом» — и слово запоминается с первого раза.
+
+**Мемасик** — это веб-приложение, где каждое английское слово представлено карточкой с картинкой и ассоциацией. Пользователь листает карточки, тренируется в режиме практики и предлагает собственные ассоциации.
+
+## Возможности
+
+**Для пользователей**
+- Библиотека карточек с фильтрацией по категории, учебнику, классу и странице
+- Режим практики (флэш-карточки) с перемешиванием
+- Оценка ассоциаций (работает / не работает)
+- Форма для предложения своих ассоциаций
+
+**Для администратора**
+- Добавление и редактирование карточек (слово, перевод, описание, картинка, транскрипция)
+- Модерация предложений пользователей
+- Аналитика: просмотры, рейтинги, статистика по карточкам
+
+## Стек технологий
+
+| Область | Технология |
+|---|---|
+| Фреймворк | Next.js 16 (App Router, React 19) |
+| Язык | TypeScript |
+| Стили | Tailwind CSS v4 |
+| База данных | PostgreSQL (Supabase) |
+| Аутентификация | Supabase Auth |
+| Хранилище | Supabase Storage |
+| Деплой | Docker + Traefik на VPS |
+| UI-компоненты | shadcn/ui, lucide-react |
+
+## Архитектура
+
+```
+src/
+├── app/
+│   ├── (app)/          # публичные страницы (библиотека, карточка, практика)
+│   ├── (auth)/         # вход и регистрация
+│   └── admin/          # панель администратора
+├── lib/
+│   ├── supabase/       # клиент, серверный клиент, middleware
+│   └── repository/     # слой работы с данными
+└── components/         # переиспользуемые компоненты
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Приложение использует серверные компоненты React для рендеринга страниц и серверные экшены для мутаций. Данные хранятся в PostgreSQL с политиками безопасности на уровне строк (RLS).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Запуск локально
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+# Установить зависимости
+npm install
 
-## Learn More
+# Создать .env.local с ключами Supabase
+cp .env.example .env.local
 
-To learn more about Next.js, take a look at the following resources:
+# Запустить dev-сервер
+npm run dev
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Открыть [localhost:3000](http://localhost:3000).
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Деплой
 
-## Deploy on Vercel
+Приложение развёрнуто на собственном сервере (VPS). Сборка и запуск через Docker:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+bash deploy.sh
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Supabase работает в режиме self-hosted на том же сервере (`supabase-self-hosted/`).
