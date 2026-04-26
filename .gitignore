@@ -32,6 +32,7 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!supabase-self-hosted/.env.example
 
 # vercel
 .vercel
