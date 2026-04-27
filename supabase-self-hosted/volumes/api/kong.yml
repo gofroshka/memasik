@@ -390,12 +390,12 @@ services:
           allow:
             - mcp
 
-  ## OAuth discovery / DCR endpoints - return clean 404 so MCP clients
-  ## without an apikey don't fall into an OAuth flow against the dashboard
-  ## catch-all (which returns basic-auth 401 that breaks the MCP SDK's
-  ## OAuth metadata/DCR parser with a ZodError on missing 'error' field).
+  ## OAuth discovery / DCR endpoints - return clean 404 (plain text body)
+  ## so MCP clients that fall into an OAuth flow don't try to parse our
+  ## response as an OAuth error JSON (a JSON 404 without 'error' field
+  ## crashes the MCP SDK's Zod parser).
   - name: oauth-noauth-stub
-    _comment: 'OAuth endpoints: return 404 to signal no OAuth required'
+    _comment: 'OAuth endpoints: 404 plain text -> signal no OAuth'
     url: http://studio:3000/
     routes:
       - name: oauth-noauth-stub
@@ -413,7 +413,8 @@ services:
       - name: request-termination
         config:
           status_code: 404
-          message: "Not Found"
+          content_type: "text/plain; charset=utf-8"
+          body: "Not Found"
 
   ## Protected Dashboard - catch all remaining routes
   - name: dashboard
