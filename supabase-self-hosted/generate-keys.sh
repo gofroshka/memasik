@@ -92,9 +92,11 @@ echo ""
 
 postgres_password=$(gen_hex 16)
 dashboard_password=$(gen_hex 16)
+supabase_mcp_key=$(gen_hex 32)
 
 echo "POSTGRES_PASSWORD=${postgres_password}"
 echo "DASHBOARD_PASSWORD=${dashboard_password}"
+echo "SUPABASE_MCP_KEY=${supabase_mcp_key}"
 echo ""
 
 if [ "$1" = "--update-env" ]; then
@@ -132,4 +134,5 @@ sed \
     -e "s|^MINIO_ROOT_PASSWORD=.*$|MINIO_ROOT_PASSWORD=${minio_root_password}|" \
     -e "s|^POSTGRES_PASSWORD=.*$|POSTGRES_PASSWORD=${postgres_password}|" \
     -e "s|^DASHBOARD_PASSWORD=.*$|DASHBOARD_PASSWORD=${dashboard_password}|" \
+    -e "s|^SUPABASE_MCP_KEY=.*$|SUPABASE_MCP_KEY=${supabase_mcp_key}|" \
     .env

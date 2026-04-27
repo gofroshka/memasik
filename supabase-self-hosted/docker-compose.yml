@@ -97,6 +97,7 @@ services:
       SERVICE_ROLE_KEY_ASYMMETRIC: ${SERVICE_ROLE_KEY_ASYMMETRIC:-}
       DASHBOARD_USERNAME: ${DASHBOARD_USERNAME}
       DASHBOARD_PASSWORD: ${DASHBOARD_PASSWORD}
+      SUPABASE_MCP_KEY: ${SUPABASE_MCP_KEY:-}
     entrypoint: /home/kong/kong-entrypoint.sh
     labels:
       - traefik.enable=true

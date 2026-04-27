@@ -14,6 +14,9 @@ consumers:
     keyauth_credentials:
       - key: $SUPABASE_SERVICE_KEY
       - key: $SUPABASE_SECRET_KEY
+  - username: mcp
+    keyauth_credentials:
+      - key: $SUPABASE_MCP_KEY
 
 ###
 ### Access Control List
@@ -23,6 +26,8 @@ acls:
     group: anon
   - consumer: service_role
     group: admin
+  - consumer: mcp
+    group: mcp
 
 ###
 ### Dashboard credentials
@@ -365,9 +370,9 @@ services:
           status_code: 403
           message: "Access is forbidden."
 
-  ## MCP endpoint - local access
+  ## MCP endpoint - authenticated via apikey header (mcp consumer / mcp ACL group)
   - name: mcp
-    _comment: 'MCP: /mcp -> http://studio:3000/api/mcp (local access)'
+    _comment: 'MCP: /mcp -> http://studio:3000/api/mcp (apikey auth)'
     url: http://studio:3000/api/mcp
     routes:
       - name: mcp
@@ -375,22 +380,15 @@ services:
         paths:
           - /mcp
     plugins:
-      # Block access to /mcp by default
-      - name: request-termination
+      - name: cors
+      - name: key-auth
         config:
-          status_code: 403
-          message: "Access is forbidden."
-      # Enable local access (danger zone!)
-      # 1. Comment out the 'request-termination' section above
-      # 2. Uncomment the entire section below, including 'deny'
-      # 3. Add your local IPs to the 'allow' list
-      #- name: cors
-      #- name: ip-restriction
-      #  config:
-      #    allow:
-      #      - 127.0.0.1
-      #      - ::1
-      #    deny: []
+          hide_credentials: false
+      - name: acl
+        config:
+          hide_groups_header: true
+          allow:
+            - mcp
 
   ## Protected Dashboard - catch all remaining routes
   - name: dashboard
