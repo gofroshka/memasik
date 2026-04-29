@@ -20,7 +20,6 @@ export interface Word {
   textbook_class: number | null
   textbook_part: number | null
   short_description: string | null
-  full_analysis: string | null
   associations: string[]
   created_at: string
   updated_at: string

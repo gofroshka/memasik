@@ -25,7 +25,6 @@ export type WordsColumnId =
   | 'transcription'
   | 'description'
   | 'short_description'
-  | 'full_analysis'
   | 'textbook'
   | 'image'
   | 'status'
@@ -45,7 +44,6 @@ const DEFAULT_COLUMNS: WordsColumn[] = [
   { id: 'transcription', label: 'Транскрипция', minWidth: 140 },
   { id: 'description', label: 'Описание', minWidth: 200 },
   { id: 'short_description', label: 'Короткое описание', minWidth: 180 },
-  { id: 'full_analysis', label: 'Анализ', minWidth: 200 },
   { id: 'textbook', label: 'Учебник', minWidth: 160 },
   { id: 'image', label: 'Фото', minWidth: 100 },
   { id: 'status', label: 'Статус', minWidth: 140 },
@@ -125,8 +123,6 @@ export default function WordsTableView({ words, adding, onAddingChange }: Props)
         return <InlineCellEdit wordId={word.id} field="description" value={word.description} placeholder="—" inputClassName="w-[340px]" multiline />
       case 'short_description':
         return <InlineCellEdit wordId={word.id} field="short_description" value={word.short_description} placeholder="—" inputClassName="w-[300px]" multiline />
-      case 'full_analysis':
-        return <InlineCellEdit wordId={word.id} field="full_analysis" value={word.full_analysis} placeholder="—" inputClassName="w-[380px]" multiline />
       case 'textbook':
         return (
           <TextbookInlineEdit

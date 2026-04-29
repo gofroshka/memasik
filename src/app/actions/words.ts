@@ -19,7 +19,6 @@ export async function saveWordAction(prevState: string | null, formData: FormDat
   const textbookClass = getOptionalInt(formData, 'textbook_class')
   const textbookPart = getOptionalInt(formData, 'textbook_part')
   const shortDescription = getOptionalString(formData, 'short_description')
-  const fullAnalysis = getOptionalString(formData, 'full_analysis')
 
   // Collect associations array from fields named associations[0], associations[1], ...
   const associations: string[] = []
@@ -59,7 +58,6 @@ export async function saveWordAction(prevState: string | null, formData: FormDat
     textbook_class: textbookClass,
     textbook_part: textbookPart,
     short_description: shortDescription,
-    full_analysis: fullAnalysis,
     associations: filteredAssociations,
     updated_at: new Date().toISOString(),
   }
@@ -127,7 +125,7 @@ export async function patchWordAction(formData: FormData) {
   const supabase = await createClient()
   const id = getString(formData, 'id')
   const field = getString(formData, 'field')
-  const ALLOWED = ['word', 'translation', 'description', 'category', 'transcription', 'short_description', 'full_analysis'] as const
+  const ALLOWED = ['word', 'translation', 'description', 'category', 'transcription', 'short_description'] as const
   if (!ALLOWED.includes(field as typeof ALLOWED[number]))
     throw new Error(`Field "${field}" is not patchable`)
   const value = getOptionalString(formData, 'value')

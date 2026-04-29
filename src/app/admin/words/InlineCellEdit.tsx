@@ -5,7 +5,7 @@ import { patchWordAction } from '@/app/actions/words'
 
 interface Props {
   wordId: string
-  field: 'word' | 'translation' | 'description' | 'category' | 'transcription' | 'short_description' | 'full_analysis'
+  field: 'word' | 'translation' | 'description' | 'category' | 'transcription' | 'short_description'
   value: string | null
   placeholder?: string
   inputClassName?: string
