@@ -105,8 +105,12 @@ export default async function WordPage({ params }: WordPageProps) {
             <p className="text-xs font-extrabold uppercase tracking-widest text-muted-foreground">
               Word card
             </p>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <h1 className="text-4xl font-extrabold md:text-5xl">{word.word}</h1>
+              {word.transcription && (
+                <span className="text-xl font-normal text-muted-foreground">[{word.transcription}]</span>
+              )}
+              <SpeakButton text={word.word} lang="en-US" label="Озвучить слово" />
               {(viewCount ?? 0) > 0 && (
                 <span className="flex items-center gap-1 rounded-full border border-border bg-muted/50 px-2 py-0.5 text-xs text-muted-foreground">
                   <Eye className="size-3" /> {viewCount}
@@ -116,9 +120,6 @@ export default async function WordPage({ params }: WordPageProps) {
             <div className="flex items-center gap-2 text-lg font-bold text-primary">
               <Languages className="size-5" />
               {word.translation}
-              {word.transcription && (
-                <span className="text-sm font-normal text-muted-foreground">[{word.transcription}]</span>
-              )}
             </div>
           </div>
 
@@ -150,8 +151,33 @@ export default async function WordPage({ params }: WordPageProps) {
             </div>
           )}
 
-          {/* Full analysis */}
-          {word.description && (
+          {/* Associations (multiple) */}
+          {word.associations && word.associations.length > 0 && (
+            <div className="space-y-3">
+              <p className="text-[10px] font-extrabold uppercase tracking-widest text-primary/60">
+                {word.associations.length > 1 ? `Ассоциации (${word.associations.length})` : 'Ассоциация'}
+              </p>
+              {word.associations.map((assoc, i) => (
+                <div key={i} className="rounded-2xl bg-primary/6 p-5">
+                  <div className="mb-3 flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <FileText className="size-3.5 text-primary/60" />
+                      {word.associations.length > 1 && (
+                        <span className="text-[10px] font-extrabold uppercase tracking-widest text-primary/60">
+                          Вариант {i + 1}
+                        </span>
+                      )}
+                    </div>
+                    <SpeakButton text={assoc} />
+                  </div>
+                  <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground/90">{assoc}</p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Full analysis (legacy description field) */}
+          {word.description && (!word.associations || word.associations.length === 0) && (
             <div className="rounded-2xl bg-primary/6 p-5">
               <div className="mb-3 flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2">

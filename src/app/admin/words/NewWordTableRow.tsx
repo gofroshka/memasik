@@ -1,7 +1,7 @@
 'use client'
 
 import { useTransition, useState, useEffect, useRef } from 'react'
-import { Check, X } from 'lucide-react'
+import { Check, Loader2, X } from 'lucide-react'
 import { createWordInlineAction } from '@/app/actions/words'
 import { Button } from '@/components/ui/button'
 
@@ -12,9 +12,26 @@ interface Props {
 const inputCls = 'w-full rounded border border-input bg-background px-2 py-1 text-sm placeholder:text-muted-foreground/40 focus:outline-none focus:ring-2 focus:ring-ring/50'
 const numCls = 'w-10 rounded border border-input bg-background px-1 py-1 text-center text-xs placeholder:text-muted-foreground/40 focus:outline-none focus:ring-2 focus:ring-ring/50 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none'
 
+async function autoTranslate(text: string): Promise<string | null> {
+  try {
+    const res = await fetch(
+      `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=ru|en`
+    )
+    const json = await res.json()
+    const translated = json?.responseData?.translatedText as string | undefined
+    if (translated && translated.toLowerCase() !== text.toLowerCase()) {
+      return translated
+    }
+    return null
+  } catch {
+    return null
+  }
+}
+
 export default function NewWordTableRow({ onCancel }: Props) {
   const [pending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
+  const [translating, setTranslating] = useState(false)
   const wordRef = useRef<HTMLInputElement>(null)
 
   const [word, setWord] = useState('')
@@ -28,6 +45,14 @@ export default function NewWordTableRow({ onCancel }: Props) {
   useEffect(() => {
     wordRef.current?.focus()
   }, [])
+
+  async function handleTranslationBlur() {
+    if (!translation.trim() || word.trim()) return
+    setTranslating(true)
+    const translated = await autoTranslate(translation.trim())
+    if (translated) setWord(translated)
+    setTranslating(false)
+  }
 
   function save() {
     if (!word.trim() || !translation.trim()) {
@@ -64,15 +89,20 @@ export default function NewWordTableRow({ onCancel }: Props) {
     <tr className="bg-primary/5 outline outline-1 outline-primary/20" onKeyDown={handleKeyDown}>
       <td className={td}>
         <div className="flex flex-col gap-1">
-          <input
-            ref={wordRef}
-            type="text"
-            value={word}
-            onChange={e => setWord(e.target.value)}
-            placeholder="Слово *"
-            className={inputCls}
-            disabled={pending}
-          />
+          <div className="relative">
+            <input
+              ref={wordRef}
+              type="text"
+              value={word}
+              onChange={e => setWord(e.target.value)}
+              placeholder="Слово *"
+              className={inputCls}
+              disabled={pending || translating}
+            />
+            {translating && (
+              <Loader2 className="absolute right-2 top-1/2 size-3 -translate-y-1/2 animate-spin text-muted-foreground" />
+            )}
+          </div>
           {error && <span className="text-[10px] text-destructive">{error}</span>}
         </div>
       </td>
@@ -81,7 +111,8 @@ export default function NewWordTableRow({ onCancel }: Props) {
           type="text"
           value={translation}
           onChange={e => setTranslation(e.target.value)}
-          placeholder="Перевод *"
+          onBlur={handleTranslationBlur}
+          placeholder="Перевод * (введите рус — слово заполнится авто)"
           className={inputCls}
           disabled={pending}
         />

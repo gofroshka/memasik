@@ -21,6 +21,16 @@ export async function saveWordAction(prevState: string | null, formData: FormDat
   const shortDescription = getOptionalString(formData, 'short_description')
   const fullAnalysis = getOptionalString(formData, 'full_analysis')
 
+  // Collect associations array from fields named associations[0], associations[1], ...
+  const associations: string[] = []
+  for (const [key, val] of formData.entries()) {
+    if (key.startsWith('associations[') && typeof val === 'string') {
+      const idx = parseInt(key.replace('associations[', '').replace(']', ''))
+      if (!isNaN(idx)) associations[idx] = val
+    }
+  }
+  const filteredAssociations = associations.filter(a => a && a.trim().length > 0)
+
   let finalImageUrl = getOptionalString(formData, 'image_url')
 
   if (imageFile && imageFile.size > 0) {
@@ -50,6 +60,7 @@ export async function saveWordAction(prevState: string | null, formData: FormDat
     textbook_part: textbookPart,
     short_description: shortDescription,
     full_analysis: fullAnalysis,
+    associations: filteredAssociations,
     updated_at: new Date().toISOString(),
   }
 

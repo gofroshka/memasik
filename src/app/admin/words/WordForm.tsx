@@ -3,7 +3,7 @@
 import { useActionState, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Word } from '@/lib/types'
-import { ImagePlus, Link2, Upload, X } from 'lucide-react'
+import { ImagePlus, Link2, Plus, Trash2, Upload, X } from 'lucide-react'
 import { saveWordAction } from '@/app/actions/words'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -20,6 +20,13 @@ export default function WordForm({ word }: { word?: Word }) {
     | { type: 'file'; preview: string }
     | { type: 'none' }
   >(word?.image_url ? { type: 'url', url: word.image_url } : { type: 'none' })
+
+  // Associations state — seed from word.associations or fall back to description
+  const [associations, setAssociations] = useState<string[]>(() => {
+    if (word?.associations && word.associations.length > 0) return word.associations
+    if (word?.description) return [word.description]
+    return ['']
+  })
 
   const preview = imageState.type !== 'none'
     ? (imageState.type === 'url' ? imageState.url : imageState.preview)
@@ -42,11 +49,30 @@ export default function WordForm({ word }: { word?: Word }) {
     if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
+  function addAssociation() {
+    setAssociations(prev => [...prev, ''])
+  }
+
+  function removeAssociation(i: number) {
+    setAssociations(prev => prev.filter((_, idx) => idx !== i))
+  }
+
+  function updateAssociation(i: number, value: string) {
+    setAssociations(prev => prev.map((a, idx) => idx === i ? value : a))
+  }
+
   return (
     <form action={formAction} className="max-w-2xl space-y-6">
       {word?.id && <input type="hidden" name="id" value={word.id} />}
       {imageState.type === 'url' && <input type="hidden" name="image_url" value={imageState.url} />}
       {imageState.type === 'none' && <input type="hidden" name="image_url" value="" />}
+
+      {/* Hidden inputs for associations array */}
+      {associations.map((a, i) => (
+        <input key={i} type="hidden" name={`associations[${i}]`} value={a} />
+      ))}
+      {/* Keep description in sync with first association for backward compat */}
+      <input type="hidden" name="description" value={associations[0] ?? ''} />
 
       {/* Main fields */}
       <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
@@ -152,18 +178,48 @@ export default function WordForm({ word }: { word?: Word }) {
               />
             </div>
           </div>
+        </div>
+      </div>
 
-          <div className="space-y-1.5">
-            <Label htmlFor="description">Полный разбор *</Label>
-            <Textarea
-              id="description"
-              name="description"
-              required
-              rows={6}
-              defaultValue={word?.description}
-              placeholder="Смех — слово звучит как «лафтер», похоже на «лавка» — представь лавку, с которой все смеются..."
-            />
-          </div>
+      {/* Associations */}
+      <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
+        <div className="mb-4 flex items-center justify-between gap-2">
+          <h2 className="font-semibold">Ассоциации</h2>
+          <Button type="button" variant="outline" size="sm" onClick={addAssociation} className="gap-1.5">
+            <Plus className="size-3.5" />
+            Добавить вариант
+          </Button>
+        </div>
+        <p className="mb-4 text-xs text-muted-foreground">
+          Можно добавить несколько вариантов ассоциации — пользователь увидит их все на карточке слова.
+        </p>
+        <div className="space-y-4">
+          {associations.map((assoc, i) => (
+            <div key={i} className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <Label htmlFor={`assoc-${i}`} className="text-xs text-muted-foreground">
+                  {associations.length > 1 ? `Вариант ${i + 1}` : 'Разбор *'}
+                </Label>
+                {associations.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => removeAssociation(i)}
+                    className="inline-flex items-center gap-1 text-[10px] text-destructive hover:underline"
+                  >
+                    <Trash2 className="size-3" />
+                    Удалить
+                  </button>
+                )}
+              </div>
+              <Textarea
+                id={`assoc-${i}`}
+                rows={5}
+                value={assoc}
+                onChange={e => updateAssociation(i, e.target.value)}
+                placeholder="Смех — слово звучит как «лафтер», похоже на «лавка» — представь лавку, с которой все смеются..."
+              />
+            </div>
+          ))}
         </div>
       </div>
 

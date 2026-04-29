@@ -1,8 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { BarChart2, BookOpen, Eye, ImageOff, Lightbulb, MessageSquare, ThumbsDown, ThumbsUp, TrendingUp, Users } from 'lucide-react'
-import Link from 'next/link'
-import { buttonVariants } from '@/components/ui/button'
-import { cn } from '@/lib/utils'
+import AllWordsStatsTable from './AllWordsStatsTable'
 
 const CHART_H = 120 // px
 
@@ -202,48 +200,15 @@ export default async function AdminAnalyticsPage() {
 
       </div>
 
-      {/* Детализация по карточкам */}
+      {/* Детализация по карточкам — таблица с перестановкой столбцов */}
       <section id="cards" className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
         <div className="border-b border-border px-5 py-4">
           <h2 className="text-sm font-bold">Детализация по карточкам</h2>
-          <p className="mt-0.5 text-xs text-muted-foreground">Просмотры и отзывы для каждой карточки</p>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            Просмотры и отзывы · перетащите заголовок столбца, чтобы изменить порядок
+          </p>
         </div>
-        <div className="divide-y divide-border">
-          {allWordsStats.length === 0 ? (
-            <p className="py-10 text-center text-sm text-muted-foreground">Нет данных</p>
-          ) : (
-            allWordsStats.map((w) => {
-              const total = w.up + w.down
-              const rate = total > 0 ? Math.round((w.up / total) * 100) : null
-              return (
-                <div key={w.id} className="flex items-center gap-4 px-5 py-3.5 hover:bg-muted/30 transition-colors">
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-baseline gap-2">
-                      <span className="font-semibold">{w.word}</span>
-                      <span className="text-xs text-muted-foreground">{w.translation}</span>
-                    </div>
-                    <div className="mt-1 flex items-center gap-3 text-xs text-muted-foreground">
-                      <span className="flex items-center gap-1"><Eye className="size-3" />{w.views}</span>
-                      <span className="flex items-center gap-1 text-green-600"><ThumbsUp className="size-3" />{w.up}</span>
-                      <span className="flex items-center gap-1 text-red-500"><ThumbsDown className="size-3" />{w.down}</span>
-                      {rate !== null && (
-                        <span className={rate >= 70 ? 'text-green-600 font-semibold' : rate >= 40 ? 'text-amber-600' : 'text-red-500'}>
-                          {rate}% 👍
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <Link
-                    href={`/admin/analytics/${w.id}`}
-                    className={cn(buttonVariants({ variant: 'outline', size: 'sm' }), 'shrink-0 text-xs')}
-                  >
-                    Подробнее
-                  </Link>
-                </div>
-              )
-            })
-          )}
-        </div>
+        <AllWordsStatsTable stats={allWordsStats} />
       </section>
 
       {/* Слова без картинок */}

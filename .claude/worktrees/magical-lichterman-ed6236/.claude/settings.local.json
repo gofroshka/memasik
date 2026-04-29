@@ -1,0 +1,35 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx create-next-app@latest:*)",
+      "Bash(npm install:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npx next:*)",
+      "Bash(claude mcp:*)",
+      "mcp__supabase__get_project_url",
+      "mcp__supabase__get_publishable_keys",
+      "mcp__supabase__apply_migration",
+      "mcp__supabase__execute_sql",
+      "mcp__supabase__list_tables",
+      "Bash(npm run:*)",
+      "Bash(curl:*)",
+      "mcp__supabase__search_docs",
+      "Bash(pkill -f \"next dev\")",
+      "Bash(ipconfig getifaddr:*)",
+      "Bash(kill 3709)",
+      "Bash(tee /tmp/nextjs.log)",
+      "Read(//tmp/**)",
+      "Bash(npx shadcn@latest:*)",
+      "Bash(ls /Users/georgiy/Dev/memasik/.env*)",
+      "Bash(ssh:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(npx shadcn *)"
+    ]
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "supabase"
+  ]
+}

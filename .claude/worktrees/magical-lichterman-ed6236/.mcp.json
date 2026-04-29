@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "next-devtools": {
+      "command": "bunx",
+      "args": [
+        "next-devtools-mcp@latest"
+      ]
+    },
+    "supabase": {
+      "type": "http",
+      "url": "https://api.memasik.fun/mcp?features=docs%2Cdatabase%2Cdebugging%2Cdevelopment"
+    }
+  }
+}

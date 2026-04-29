@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Square, Volume2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-export default function SpeakButton({ text, lang = 'ru-RU' }: { text: string; lang?: string }) {
+export default function SpeakButton({ text, lang = 'ru-RU', label }: { text: string; lang?: string; label?: string }) {
   const [speaking, setSpeaking] = useState(false)
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null)
 
@@ -37,7 +37,7 @@ export default function SpeakButton({ text, lang = 'ru-RU' }: { text: string; la
   return (
     <button
       onClick={toggle}
-      title={speaking ? 'Остановить' : 'Озвучить разбор'}
+      title={speaking ? 'Остановить' : (label ?? 'Озвучить разбор')}
       className={cn(
         'inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition-all',
         speaking
@@ -46,7 +46,7 @@ export default function SpeakButton({ text, lang = 'ru-RU' }: { text: string; la
       )}
     >
       {speaking ? <Square className="size-3 fill-current" /> : <Volume2 className="size-3" />}
-      {speaking ? 'Стоп' : 'Озвучить'}
+      {speaking ? 'Стоп' : (label ?? 'Озвучить')}
     </button>
   )
 }

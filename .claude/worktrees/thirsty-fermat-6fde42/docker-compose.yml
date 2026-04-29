@@ -1,0 +1,30 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
+        - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+    container_name: memasik
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
+      - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+    networks:
+      - traefik-public
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.memasik.rule=Host(`memasik.fun`) || Host(`www.memasik.fun`)
+      - traefik.http.routers.memasik.entrypoints=websecure
+      - traefik.http.routers.memasik.tls.certresolver=letsencrypt
+      - traefik.http.services.memasik.loadbalancer.server.port=3000
+      # www → non-www redirect
+      - traefik.http.middlewares.www-redirect.redirectregex.regex=^https://www\.memasik\.fun/(.*)
+      - traefik.http.middlewares.www-redirect.redirectregex.replacement=https://memasik.fun/$${1}
+      - traefik.http.routers.memasik.middlewares=www-redirect
+
+networks:
+  traefik-public:
+    external: true

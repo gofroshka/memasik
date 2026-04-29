@@ -1,0 +1,5 @@
+.env
+volumes/db/data/
+volumes/storage/
+volumes/functions/.deno-cache/
+node_modules/
