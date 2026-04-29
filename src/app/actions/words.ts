@@ -30,6 +30,11 @@ export async function saveWordAction(prevState: string | null, formData: FormDat
   }
   const filteredAssociations = associations.filter(a => a && a.trim().length > 0)
 
+  const dupQuery = supabase.from('words').select('id').ilike('word', word.trim()).limit(1)
+  if (id) dupQuery.neq('id', id)
+  const { data: dups } = await dupQuery
+  if (dups && dups.length > 0) return `Слово «${word.trim()}» уже есть в списке`
+
   let finalImageUrl = getOptionalString(formData, 'image_url')
 
   if (imageFile && imageFile.size > 0) {
@@ -77,6 +82,9 @@ export async function createWordInlineAction(formData: FormData): Promise<string
   const supabase = await createClient()
   const word = getString(formData, 'word')
   const translation = getString(formData, 'translation')
+
+  const { data: dups } = await supabase.from('words').select('id').ilike('word', word.trim()).limit(1)
+  if (dups && dups.length > 0) return `Слово «${word.trim()}» уже есть в списке`
 
   const { error } = await supabase.from('words').insert({
     word,
