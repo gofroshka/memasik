@@ -23,7 +23,7 @@ export default function WordsListView({ words }: Props) {
         >
           {/* Top row: image + info */}
           <div className="flex items-center gap-3 px-4 pt-3 pb-2.5">
-            <div className="shrink-0">
+            <div className="relative shrink-0">
               {word.image_url ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
@@ -35,6 +35,15 @@ export default function WordsListView({ words }: Props) {
                 <div className="flex size-11 items-center justify-center rounded-lg bg-muted">
                   <ImageOff className="size-4 text-muted-foreground/30" />
                 </div>
+              )}
+              {(word.associations?.length ?? 0) > 1 && (
+                <span
+                  aria-label={`Ещё ${(word.associations!.length - 1)} вариантов`}
+                  className="absolute -right-1.5 -top-1.5 inline-flex min-w-[18px] items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold leading-none text-primary-foreground ring-2 ring-card"
+                  style={{ height: 18 }}
+                >
+                  +{word.associations!.length - 1}
+                </span>
               )}
             </div>
 

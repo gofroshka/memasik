@@ -9,9 +9,10 @@ interface Props {
   wordId: string
   imageUrl: string | null
   wordName: string
+  variantsCount?: number
 }
 
-export default function ImageInlineEdit({ wordId, imageUrl, wordName }: Props) {
+export default function ImageInlineEdit({ wordId, imageUrl, wordName, variantsCount = 0 }: Props) {
   const [editing, setEditing] = useState(false)
   const [pending, startTransition] = useTransition()
   const [optimisticUrl, setOptimisticUrl] = useState(imageUrl)
@@ -128,12 +129,16 @@ export default function ImageInlineEdit({ wordId, imageUrl, wordName }: Props) {
     )
   }
 
+  const extraVariants = Math.max(0, variantsCount - 1)
+
   return (
     <button
       onClick={open}
       disabled={pending}
-      title="Изменить фото"
-      className="group relative block rounded transition-opacity disabled:opacity-40"
+      title={extraVariants > 0
+        ? `Изменить фото · ${variantsCount} ${variantsCount === 1 ? 'вариант' : variantsCount < 5 ? 'варианта' : 'вариантов'} ассоциации`
+        : 'Изменить фото'}
+      className="group relative inline-block rounded transition-opacity disabled:opacity-40"
     >
       {optimisticUrl ? (
         <>
@@ -151,6 +156,15 @@ export default function ImageInlineEdit({ wordId, imageUrl, wordName }: Props) {
         <span className="inline-flex items-center gap-1 rounded-md border border-destructive/30 bg-destructive/10 px-1.5 py-0.5 text-[11px] font-medium text-destructive transition-colors group-hover:bg-destructive/20">
           <ImageOff className="size-3" />
           нет фото
+        </span>
+      )}
+      {extraVariants > 0 && (
+        <span
+          aria-label={`Ещё ${extraVariants} вариантов ассоциации`}
+          className="absolute -right-1.5 -top-1.5 inline-flex min-w-[18px] items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold leading-none text-primary-foreground ring-2 ring-card"
+          style={{ height: 18 }}
+        >
+          +{extraVariants}
         </span>
       )}
     </button>

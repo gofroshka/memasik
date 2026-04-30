@@ -58,6 +58,13 @@ export default function WordForm({ word, section: sectionProp }: { word?: Word; 
   )
 
   const [variants, setVariants] = useState<VariantState[]>(() => seedVariants(word))
+  const [activeId, setActiveId] = useState<string>(() => variants[0]?._id ?? '')
+
+  // If active variant gets deleted (id no longer present), fall back to first.
+  const activeIndex = (() => {
+    const idx = variants.findIndex(v => v._id === activeId)
+    return idx === -1 ? 0 : idx
+  })()
 
   const preview = imageState.type !== 'none'
     ? (imageState.type === 'url' ? imageState.url : imageState.preview)
@@ -91,7 +98,9 @@ export default function WordForm({ word, section: sectionProp }: { word?: Word; 
   }
 
   function addVariant() {
-    setVariants(prev => [...prev, { _id: newVariantId(), text: '', short_description: '', image: { type: 'none' } }])
+    const id = newVariantId()
+    setVariants(prev => [...prev, { _id: id, text: '', short_description: '', image: { type: 'none' } }])
+    setActiveId(id)
   }
 
   function makePrimary(i: number) {
@@ -100,6 +109,8 @@ export default function WordForm({ word, section: sectionProp }: { word?: Word; 
       const next = [...prev]
       const [picked] = next.splice(i, 1)
       next.unshift(picked)
+      // Keep the same variant focused — it's now the primary one.
+      setActiveId(picked._id)
       return next
     })
   }
@@ -108,7 +119,13 @@ export default function WordForm({ word, section: sectionProp }: { word?: Word; 
     setVariants(prev => {
       const removed = prev[i]
       if (removed?.image.type === 'file') URL.revokeObjectURL(removed.image.preview)
-      return prev.filter((_, idx) => idx !== i)
+      const next = prev.filter((_, idx) => idx !== i)
+      // If we just deleted the active tab, jump to the neighbor.
+      if (removed?._id === activeId) {
+        const fallback = next[i] ?? next[i - 1] ?? next[0]
+        if (fallback) setActiveId(fallback._id)
+      }
+      return next
     })
   }
 
@@ -141,8 +158,16 @@ export default function WordForm({ word, section: sectionProp }: { word?: Word; 
     }))
   }
 
+  // Hidden tabs skip native required validation, so guard the primary text.
+  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    if (!variants[0]?.text.trim() && variants[0]?._id !== activeId) {
+      e.preventDefault()
+      setActiveId(variants[0]?._id ?? '')
+    }
+  }
+
   return (
-    <form action={formAction} className="max-w-2xl space-y-6">
+    <form action={formAction} onSubmit={handleSubmit} className="max-w-2xl space-y-6">
       {word?.id && <input type="hidden" name="id" value={word.id} />}
       <input type="hidden" name="section" value={section} />
       {imageState.type === 'url' && <input type="hidden" name="image_url" value={imageState.url} />}
@@ -292,21 +317,53 @@ export default function WordForm({ word, section: sectionProp }: { word?: Word; 
           Первый вариант — основной (он показывается по умолчанию на карточке слова и в флешкартах). Остальные пользователь увидит, переключаясь между ними.
         </p>
 
+        {variants.length > 1 && (
+          <div className="mb-4 flex flex-wrap gap-1.5 border-b border-border pb-3">
+            {variants.map((v, i) => {
+              const isActive = v._id === activeId
+              const label = v.short_description.trim() || (i === 0 ? 'Основной' : `Вариант ${i + 1}`)
+              return (
+                <button
+                  key={v._id}
+                  type="button"
+                  onClick={() => setActiveId(v._id)}
+                  className={cn(
+                    'inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs transition-colors',
+                    isActive
+                      ? 'border-primary/40 bg-primary/10 font-semibold text-primary'
+                      : 'border-border bg-card text-muted-foreground hover:bg-muted/50 hover:text-foreground'
+                  )}
+                >
+                  {i === 0 ? (
+                    <Star className="size-3 fill-primary text-primary" />
+                  ) : (
+                    <span className="rounded-full bg-foreground/10 px-1.5 py-0.5 text-[10px] font-bold">{i + 1}</span>
+                  )}
+                  <span className="max-w-[180px] truncate">{label}</span>
+                </button>
+              )
+            })}
+          </div>
+        )}
+
+        {/* All editors stay mounted so chosen files survive tab switches; only
+            the active one is visible. */}
         <div className="space-y-5">
           {variants.map((v, i) => (
-            <VariantEditor
-              key={v._id}
-              index={i}
-              total={variants.length}
-              variant={v}
-              onChangeText={text => updateVariant(i, { text })}
-              onChangeShortDesc={short_description => updateVariant(i, { short_description })}
-              onPickFile={file => setVariantImageFromFile(i, file)}
-              onChangeUrl={url => setVariantImageFromUrl(i, url)}
-              onClearImage={() => clearVariantImage(i)}
-              onRemove={() => removeVariant(i)}
-              onMakePrimary={() => makePrimary(i)}
-            />
+            <div key={v._id} className={cn(v._id !== activeId && 'hidden')}>
+              <VariantEditor
+                index={i}
+                total={variants.length}
+                variant={v}
+                onChangeText={text => updateVariant(i, { text })}
+                onChangeShortDesc={short_description => updateVariant(i, { short_description })}
+                onPickFile={file => setVariantImageFromFile(i, file)}
+                onChangeUrl={url => setVariantImageFromUrl(i, url)}
+                onClearImage={() => clearVariantImage(i)}
+                onRemove={() => removeVariant(i)}
+                onMakePrimary={() => makePrimary(i)}
+              />
+            </div>
           ))}
         </div>
       </div>

@@ -136,7 +136,14 @@ export default function WordsTableView({ words, adding, onAddingChange, section 
           />
         )
       case 'image':
-        return <ImageInlineEdit wordId={word.id} imageUrl={word.image_url} wordName={word.word} />
+        return (
+          <ImageInlineEdit
+            wordId={word.id}
+            imageUrl={word.image_url}
+            wordName={word.word}
+            variantsCount={word.associations?.length ?? 0}
+          />
+        )
       case 'status':
         return (
           <form action={togglePublishAction}>
