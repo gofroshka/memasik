@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { BarChart2, BookOpen, LayoutDashboard, Lightbulb, LogOut } from 'lucide-react'
+import { BarChart2, BookOpen, LayoutDashboard, Lightbulb, LogOut, MessageSquare } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
@@ -22,6 +22,7 @@ export default function AdminMobileNav() {
     { href: '/admin/words', label: 'Слова', icon: BookOpen, exact: false },
     { href: '/admin/analytics', label: 'Аналитика', icon: BarChart2, exact: false },
     { href: '/admin/suggestions', label: 'Идеи', icon: Lightbulb, exact: false },
+    { href: '/admin/feedback', label: 'Отзывы', icon: MessageSquare, exact: false },
   ]
 
   return (

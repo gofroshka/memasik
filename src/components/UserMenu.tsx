@@ -2,7 +2,7 @@
 
 import { useTransition } from 'react'
 import Link from 'next/link'
-import { LayoutDashboard, Lightbulb, LogOut } from 'lucide-react'
+import { LayoutDashboard, Lightbulb, LogOut, MessageSquare } from 'lucide-react'
 import { signOutAction } from '@/app/actions/auth'
 import {
   DropdownMenu,
@@ -48,7 +48,12 @@ export default function UserMenu({ userRole, userEmail }: UserMenuProps) {
           <DropdownMenuGroup>
             <DropdownMenuLinkItem render={<Link href="/suggest" />} closeOnClick className="gap-3 rounded-lg px-3 py-2.5">
               <Lightbulb className="size-4 shrink-0 text-muted-foreground" />
-              <span>Предложить идею</span>
+              <span>Предложить ассоциацию</span>
+            </DropdownMenuLinkItem>
+
+            <DropdownMenuLinkItem render={<Link href="/feedback" />} closeOnClick className="gap-3 rounded-lg px-3 py-2.5">
+              <MessageSquare className="size-4 shrink-0 text-muted-foreground" />
+              <span>Отзывы и предложения</span>
             </DropdownMenuLinkItem>
 
             {userRole === 'admin' && (
