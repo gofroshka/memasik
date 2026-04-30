@@ -1,10 +1,12 @@
 'use client'
 
-import { useState } from 'react'
-import { Check, ChevronDown, FileText, Star } from 'lucide-react'
+import { useState, useTransition } from 'react'
+import { Check, ChevronDown, FileText, Star, ThumbsDown, ThumbsUp } from 'lucide-react'
 import { AssociationVariant } from '@/lib/types'
 import SpeakButton from '@/components/SpeakButton'
 import ImageWithFallback from '@/components/ImageWithFallback'
+import { submitFeedbackAction } from '@/app/actions/feedback'
+import { cn } from '@/lib/utils'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,21 +14,36 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 
+export interface VariantFeedback {
+  up: number
+  down: number
+  userVote: boolean | null
+}
+
 interface Props {
+  wordId: string
   variants: AssociationVariant[]
+  feedback: Record<string, VariantFeedback>
+  isAuthenticated: boolean
 }
 
 function variantLabel(v: AssociationVariant, i: number): string {
   return v.short_description?.trim() || (i === 0 ? 'Основной' : `Вариант ${i + 1}`)
 }
 
-export default function AssociationVariants({ variants }: Props) {
+export default function AssociationVariants({ wordId, variants, feedback, isAuthenticated }: Props) {
   const [active, setActive] = useState(0)
+  const [pending, startTransition] = useTransition()
   if (variants.length === 0) return null
 
   const single = variants.length === 1
   const activeIdx = Math.min(active, variants.length - 1)
   const current = variants[activeIdx]
+  const currentFb = feedback[current.id] ?? { up: 0, down: 0, userVote: null }
+
+  function vote(v: boolean) {
+    startTransition(() => { submitFeedbackAction(wordId, current.id, v) })
+  }
 
   return (
     <div className="space-y-3">
@@ -51,7 +68,7 @@ export default function AssociationVariants({ variants }: Props) {
             <DropdownMenuContent align="end" sideOffset={6} className="min-w-[220px] py-1">
               {variants.map((v, i) => (
                 <DropdownMenuItem
-                  key={i}
+                  key={v.id}
                   onClick={() => setActive(i)}
                   className="cursor-pointer gap-2 px-2 py-2 text-sm"
                 >
@@ -103,6 +120,52 @@ export default function AssociationVariants({ variants }: Props) {
         </div>
 
         <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground/90">{current.text}</p>
+
+        {/* Per-variant feedback */}
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-primary/15 pt-3">
+          <p className="text-[10px] font-extrabold uppercase tracking-widest text-primary/60">
+            Эта ассоциация работает?
+          </p>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => vote(true)}
+              disabled={!isAuthenticated || pending}
+              title={!isAuthenticated ? 'Войдите, чтобы оценить' : undefined}
+              className={cn(
+                'inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold transition-colors',
+                !isAuthenticated && 'cursor-not-allowed opacity-50',
+                isAuthenticated && currentFb.userVote === true
+                  ? 'border-green-500/40 bg-green-500/10 text-green-600'
+                  : 'border-border bg-background text-muted-foreground hover:border-green-500/40 hover:bg-green-500/10 hover:text-green-600',
+              )}
+            >
+              <ThumbsUp className="size-3.5" />
+              <span className="tabular-nums">{currentFb.up}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => vote(false)}
+              disabled={!isAuthenticated || pending}
+              title={!isAuthenticated ? 'Войдите, чтобы оценить' : undefined}
+              className={cn(
+                'inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold transition-colors',
+                !isAuthenticated && 'cursor-not-allowed opacity-50',
+                isAuthenticated && currentFb.userVote === false
+                  ? 'border-red-500/40 bg-red-500/10 text-red-500'
+                  : 'border-border bg-background text-muted-foreground hover:border-red-500/40 hover:bg-red-500/10 hover:text-red-500',
+              )}
+            >
+              <ThumbsDown className="size-3.5" />
+              <span className="tabular-nums">{currentFb.down}</span>
+            </button>
+          </div>
+        </div>
+        {!isAuthenticated && (
+          <p className="text-[11px] text-muted-foreground">
+            <a href="/login" className="underline underline-offset-2 hover:text-foreground">Войдите</a>, чтобы оценить ассоциацию
+          </p>
+        )}
       </div>
     </div>
   )

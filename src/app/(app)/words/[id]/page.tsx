@@ -2,11 +2,10 @@ import { createClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, ArrowRight, BookOpen, Eye, FileText, Languages } from 'lucide-react'
-import AssociationVariants from './AssociationVariants'
+import AssociationVariants, { type VariantFeedback } from './AssociationVariants'
 import { buttonVariants } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
-import FeedbackButtons from '@/components/FeedbackButtons'
 import SpeakButton from '@/components/SpeakButton'
 import ImageWithFallback from '@/components/ImageWithFallback'
 import { getWordById, getAdjacentWords } from '@/lib/repository/words'
@@ -30,13 +29,22 @@ export default async function WordPage({ params }: WordPageProps) {
 
   const [{ prev, next }, { data: feedbackRows }, { count: viewCount }] = await Promise.all([
     getAdjacentWords(supabase, word.section, word.word),
-    supabase.from('word_feedback').select('vote, user_id').eq('word_id', id),
+    supabase.from('word_feedback').select('vote, user_id, variant_id').eq('word_id', id),
     supabase.from('word_views').select('*', { count: 'exact', head: true }).eq('word_id', id),
   ])
 
-  const upCount = feedbackRows?.filter(f => f.vote === true).length ?? 0
-  const downCount = feedbackRows?.filter(f => f.vote === false).length ?? 0
-  const userVote = user ? (feedbackRows?.find(f => f.user_id === user.id)?.vote ?? null) : null
+  // Bucket feedback by variant id so each variant gets its own counts /
+  // current-user vote.
+  const feedbackByVariant: Record<string, VariantFeedback> = {}
+  for (const row of feedbackRows ?? []) {
+    const key = row.variant_id as string | null
+    if (!key) continue
+    const entry = feedbackByVariant[key] ?? { up: 0, down: 0, userVote: null }
+    if (row.vote === true) entry.up += 1
+    else if (row.vote === false) entry.down += 1
+    if (user && row.user_id === user.id) entry.userVote = row.vote as boolean
+    feedbackByVariant[key] = entry
+  }
 
   const backHref = word.category
     ? withSection('/learn', word.section, { category: word.category })
@@ -129,7 +137,12 @@ export default async function WordPage({ params }: WordPageProps) {
 
           {/* Associations (image + short description + text live here per variant) */}
           {word.associations && word.associations.length > 0 ? (
-            <AssociationVariants variants={word.associations} />
+            <AssociationVariants
+              wordId={word.id}
+              variants={word.associations}
+              feedback={feedbackByVariant}
+              isAuthenticated={!!user}
+            />
           ) : word.description ? (
             <>
               {word.short_description && (
@@ -172,17 +185,6 @@ export default async function WordPage({ params }: WordPageProps) {
               )}
             </div>
           )}
-
-          {/* Feedback */}
-          <div className="rounded-2xl border border-border p-5">
-            <FeedbackButtons
-              wordId={word.id}
-              upCount={upCount}
-              downCount={downCount}
-              userVote={userVote}
-              isAuthenticated={!!user}
-            />
-          </div>
 
           {/* Usage tips */}
           <div className="rounded-2xl border border-border p-4">

@@ -58,6 +58,7 @@ export async function updateSuggestionStatusAction(formData: FormData) {
 
     const now = new Date().toISOString()
     const variant = {
+      id: crypto.randomUUID(),
       text: suggestion.association,
       image_url: null,
       short_description: null,

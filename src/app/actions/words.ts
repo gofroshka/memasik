@@ -25,10 +25,11 @@ async function collectVariants(
   supabase: SupabaseClient,
 ): Promise<AssociationVariant[]> {
   // Group entries by variant index, then build & upload.
-  const byIndex = new Map<number, { text?: string; short_description?: string; image_url?: string; image_file?: File }>()
+  type Slot = { id?: string; text?: string; short_description?: string; image_url?: string; image_file?: File }
+  const byIndex = new Map<number, Slot>()
 
   for (const [key, val] of formData.entries()) {
-    const match = key.match(/^assoc\[(\d+)\]\[(text|short_description|image_url|image_file)\]$/)
+    const match = key.match(/^assoc\[(\d+)\]\[(id|text|short_description|image_url|image_file)\]$/)
     if (!match) continue
     const idx = parseInt(match[1], 10)
     const field = match[2]
@@ -37,7 +38,7 @@ async function collectVariants(
     if (field === 'image_file') {
       if (val instanceof File && val.size > 0) slot.image_file = val
     } else if (typeof val === 'string') {
-      slot[field as 'text' | 'short_description' | 'image_url'] = val
+      slot[field as 'id' | 'text' | 'short_description' | 'image_url'] = val
     }
   }
 
@@ -50,7 +51,8 @@ async function collectVariants(
     let imageUrl: string | null = (slot.image_url ?? '').trim() || null
     if (slot.image_file) imageUrl = await uploadWordImage(supabase, slot.image_file)
     const shortDesc = (slot.short_description ?? '').trim() || null
-    result.push({ text, image_url: imageUrl, short_description: shortDesc })
+    const id = (slot.id ?? '').trim() || crypto.randomUUID()
+    result.push({ id, text, image_url: imageUrl, short_description: shortDesc })
   }
   return result
 }
@@ -179,7 +181,7 @@ export async function updateWordImageAction(formData: FormData) {
     .single()
   const variants = ((existing?.associations as AssociationVariant[] | null) ?? []).slice()
   if (variants.length === 0) {
-    variants.push({ text: '', short_description: null, image_url: imageUrl ?? null })
+    variants.push({ id: crypto.randomUUID(), text: '', short_description: null, image_url: imageUrl ?? null })
   } else {
     variants[0] = { ...variants[0], image_url: imageUrl ?? null }
   }
@@ -221,7 +223,13 @@ export async function patchWordAction(formData: FormData) {
     const variants = ((existing?.associations as AssociationVariant[] | null) ?? []).slice()
     const variantField = field === 'description' ? 'text' : 'short_description'
     if (variants.length === 0) {
-      variants.push({ text: '', short_description: null, image_url: null, [variantField]: value ?? '' } as AssociationVariant)
+      variants.push({
+        id: crypto.randomUUID(),
+        text: '',
+        short_description: null,
+        image_url: null,
+        [variantField]: value ?? '',
+      } as AssociationVariant)
     } else {
       variants[0] = { ...variants[0], [variantField]: value ?? (field === 'description' ? '' : null) }
     }

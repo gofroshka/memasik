@@ -10,6 +10,7 @@ export interface Profile {
 }
 
 export interface AssociationVariant {
+  id: string
   text: string
   image_url: string | null
   short_description: string | null

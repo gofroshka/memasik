@@ -24,8 +24,8 @@ type VariantImage =
   | { type: 'none' }
 
 interface VariantState {
-  // Stable client-only key so React keeps the same DOM (and file inputs)
-  // across reorders.
+  // Stable variant id (shared with the database). New variants get a fresh
+  // uuid; existing ones keep theirs so per-variant feedback stays attached.
   _id: string
   text: string
   short_description: string
@@ -33,13 +33,16 @@ interface VariantState {
 }
 
 function newVariantId() {
-  return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID()
+  }
+  return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
 }
 
 function seedVariants(word?: Word): VariantState[] {
   if (word?.associations && word.associations.length > 0) {
     return word.associations.map(v => ({
-      _id: newVariantId(),
+      _id: v.id || newVariantId(),
       text: v.text ?? '',
       short_description: v.short_description ?? '',
       image: v.image_url ? { type: 'url' as const, url: v.image_url } : { type: 'none' as const },
@@ -155,9 +158,11 @@ export default function WordForm({ word, section: sectionProp }: { word?: Word; 
 
       {/* Per-variant hidden inputs — file inputs are rendered inline below.
           The server derives word.image_url, word.short_description and
-          word.description from the primary variant on save. */}
+          word.description from the primary variant on save. The id is
+          preserved so per-variant feedback stays attached after edits. */}
       {variants.map((v, i) => (
         <div key={`hidden-${v._id}`}>
+          <input type="hidden" name={`assoc[${i}][id]`} value={v._id} />
           <input type="hidden" name={`assoc[${i}][text]`} value={v.text} />
           <input type="hidden" name={`assoc[${i}][short_description]`} value={v.short_description} />
           <input
