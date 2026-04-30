@@ -4,6 +4,55 @@ import { createClient } from '@/lib/supabase/server'
 import { getString, getOptionalString, getOptionalInt, getBoolean } from '@/lib/form'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
+import type { SupabaseClient } from '@supabase/supabase-js'
+import type { AssociationVariant } from '@/lib/types'
+
+async function uploadWordImage(supabase: SupabaseClient, file: File): Promise<string> {
+  const ext = file.name.split('.').pop()
+  const fileName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`
+  const buffer = Buffer.from(await file.arrayBuffer())
+  const { data, error } = await supabase.storage
+    .from('word-images')
+    .upload(fileName, buffer, { contentType: file.type, upsert: true })
+  if (error) throw new Error(error.message)
+  const { data: urlData } = supabase.storage.from('word-images').getPublicUrl(data.path)
+  return urlData.publicUrl
+}
+
+async function collectVariants(
+  formData: FormData,
+  supabase: SupabaseClient,
+): Promise<AssociationVariant[]> {
+  // Group entries by variant index, then build & upload.
+  const byIndex = new Map<number, { text?: string; short_description?: string; image_url?: string; image_file?: File }>()
+
+  for (const [key, val] of formData.entries()) {
+    const match = key.match(/^assoc\[(\d+)\]\[(text|short_description|image_url|image_file)\]$/)
+    if (!match) continue
+    const idx = parseInt(match[1], 10)
+    const field = match[2]
+    if (!byIndex.has(idx)) byIndex.set(idx, {})
+    const slot = byIndex.get(idx)!
+    if (field === 'image_file') {
+      if (val instanceof File && val.size > 0) slot.image_file = val
+    } else if (typeof val === 'string') {
+      slot[field as 'text' | 'short_description' | 'image_url'] = val
+    }
+  }
+
+  const ordered = [...byIndex.entries()].sort(([a], [b]) => a - b).map(([, v]) => v)
+
+  const result: AssociationVariant[] = []
+  for (const slot of ordered) {
+    const text = (slot.text ?? '').trim()
+    if (!text) continue
+    let imageUrl: string | null = (slot.image_url ?? '').trim() || null
+    if (slot.image_file) imageUrl = await uploadWordImage(supabase, slot.image_file)
+    const shortDesc = (slot.short_description ?? '').trim() || null
+    result.push({ text, image_url: imageUrl, short_description: shortDesc })
+  }
+  return result
+}
 
 export async function saveWordAction(prevState: string | null, formData: FormData) {
   const supabase = await createClient()
@@ -20,36 +69,26 @@ export async function saveWordAction(prevState: string | null, formData: FormDat
   const textbookPart = getOptionalInt(formData, 'textbook_part')
   const shortDescription = getOptionalString(formData, 'short_description')
 
-  // Collect associations array from fields named associations[0], associations[1], ...
-  const associations: string[] = []
-  for (const [key, val] of formData.entries()) {
-    if (key.startsWith('associations[') && typeof val === 'string') {
-      const idx = parseInt(key.replace('associations[', '').replace(']', ''))
-      if (!isNaN(idx)) associations[idx] = val
-    }
-  }
-  const filteredAssociations = associations.filter(a => a && a.trim().length > 0)
-
   const dupQuery = supabase.from('words').select('id').ilike('word', word.trim()).limit(1)
   if (id) dupQuery.neq('id', id)
   const { data: dups } = await dupQuery
   if (dups && dups.length > 0) return `Слово «${word.trim()}» уже есть в списке`
 
+  let variants: AssociationVariant[] = []
+  try {
+    variants = await collectVariants(formData, supabase)
+  } catch (e) {
+    return 'Ошибка загрузки картинки варианта: ' + (e instanceof Error ? e.message : String(e))
+  }
+
   let finalImageUrl = getOptionalString(formData, 'image_url')
 
   if (imageFile && imageFile.size > 0) {
-    const ext = imageFile.name.split('.').pop()
-    const fileName = `${Date.now()}.${ext}`
-    const buffer = Buffer.from(await imageFile.arrayBuffer())
-
-    const { data: uploadData, error: uploadError } = await supabase.storage
-      .from('word-images')
-      .upload(fileName, buffer, { contentType: imageFile.type, upsert: true })
-
-    if (uploadError) return 'Ошибка загрузки изображения: ' + uploadError.message
-
-    const { data: urlData } = supabase.storage.from('word-images').getPublicUrl(uploadData.path)
-    finalImageUrl = urlData.publicUrl
+    try {
+      finalImageUrl = await uploadWordImage(supabase, imageFile)
+    } catch (e) {
+      return 'Ошибка загрузки изображения: ' + (e instanceof Error ? e.message : String(e))
+    }
   }
 
   const payload = {
@@ -63,7 +102,7 @@ export async function saveWordAction(prevState: string | null, formData: FormDat
     textbook_class: textbookClass,
     textbook_part: textbookPart,
     short_description: shortDescription,
-    associations: filteredAssociations,
+    associations: variants,
     updated_at: new Date().toISOString(),
   }
 

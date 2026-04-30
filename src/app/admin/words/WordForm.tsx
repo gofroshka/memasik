@@ -9,24 +9,43 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { cn } from '@/lib/utils'
+
+type VariantImage =
+  | { type: 'url'; url: string }
+  | { type: 'file'; preview: string }
+  | { type: 'none' }
+
+interface VariantState {
+  text: string
+  short_description: string
+  image: VariantImage
+}
+
+function seedVariants(word?: Word): VariantState[] {
+  if (word?.associations && word.associations.length > 0) {
+    return word.associations.map(v => ({
+      text: v.text ?? '',
+      short_description: v.short_description ?? '',
+      image: v.image_url ? { type: 'url' as const, url: v.image_url } : { type: 'none' as const },
+    }))
+  }
+  if (word?.description) {
+    return [{ text: word.description, short_description: '', image: { type: 'none' } }]
+  }
+  return [{ text: '', short_description: '', image: { type: 'none' } }]
+}
 
 export default function WordForm({ word }: { word?: Word }) {
   const router = useRouter()
   const [error, formAction, pending] = useActionState(saveWordAction, null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const [imageState, setImageState] = useState<
-    | { type: 'url'; url: string }
-    | { type: 'file'; preview: string }
-    | { type: 'none' }
-  >(word?.image_url ? { type: 'url', url: word.image_url } : { type: 'none' })
+  const [imageState, setImageState] = useState<VariantImage>(
+    word?.image_url ? { type: 'url', url: word.image_url } : { type: 'none' }
+  )
 
-  // Associations state — seed from word.associations or fall back to description
-  const [associations, setAssociations] = useState<string[]>(() => {
-    if (word?.associations && word.associations.length > 0) return word.associations
-    if (word?.description) return [word.description]
-    return ['']
-  })
+  const [variants, setVariants] = useState<VariantState[]>(() => seedVariants(word))
 
   const preview = imageState.type !== 'none'
     ? (imageState.type === 'url' ? imageState.url : imageState.preview)
@@ -37,6 +56,16 @@ export default function WordForm({ word }: { word?: Word }) {
       return () => URL.revokeObjectURL(imageState.preview)
     }
   }, [imageState])
+
+  // Clean up object URLs for variant images on unmount / replacement.
+  useEffect(() => {
+    return () => {
+      variants.forEach(v => {
+        if (v.image.type === 'file') URL.revokeObjectURL(v.image.preview)
+      })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -49,16 +78,45 @@ export default function WordForm({ word }: { word?: Word }) {
     if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
-  function addAssociation() {
-    setAssociations(prev => [...prev, ''])
+  function addVariant() {
+    setVariants(prev => [...prev, { text: '', short_description: '', image: { type: 'none' } }])
   }
 
-  function removeAssociation(i: number) {
-    setAssociations(prev => prev.filter((_, idx) => idx !== i))
+  function removeVariant(i: number) {
+    setVariants(prev => {
+      const removed = prev[i]
+      if (removed?.image.type === 'file') URL.revokeObjectURL(removed.image.preview)
+      return prev.filter((_, idx) => idx !== i)
+    })
   }
 
-  function updateAssociation(i: number, value: string) {
-    setAssociations(prev => prev.map((a, idx) => idx === i ? value : a))
+  function updateVariant(i: number, patch: Partial<VariantState>) {
+    setVariants(prev => prev.map((v, idx) => (idx === i ? { ...v, ...patch } : v)))
+  }
+
+  function setVariantImageFromFile(i: number, file: File) {
+    setVariants(prev => prev.map((v, idx) => {
+      if (idx !== i) return v
+      if (v.image.type === 'file') URL.revokeObjectURL(v.image.preview)
+      return { ...v, image: { type: 'file', preview: URL.createObjectURL(file) } }
+    }))
+  }
+
+  function setVariantImageFromUrl(i: number, url: string) {
+    const trimmed = url.trim()
+    setVariants(prev => prev.map((v, idx) => {
+      if (idx !== i) return v
+      if (v.image.type === 'file') URL.revokeObjectURL(v.image.preview)
+      return { ...v, image: trimmed ? { type: 'url', url: trimmed } : { type: 'none' } }
+    }))
+  }
+
+  function clearVariantImage(i: number) {
+    setVariants(prev => prev.map((v, idx) => {
+      if (idx !== i) return v
+      if (v.image.type === 'file') URL.revokeObjectURL(v.image.preview)
+      return { ...v, image: { type: 'none' } }
+    }))
   }
 
   return (
@@ -67,12 +125,20 @@ export default function WordForm({ word }: { word?: Word }) {
       {imageState.type === 'url' && <input type="hidden" name="image_url" value={imageState.url} />}
       {imageState.type === 'none' && <input type="hidden" name="image_url" value="" />}
 
-      {/* Hidden inputs for associations array */}
-      {associations.map((a, i) => (
-        <input key={i} type="hidden" name={`associations[${i}]`} value={a} />
+      {/* Per-variant hidden inputs — file inputs are rendered inline below */}
+      {variants.map((v, i) => (
+        <div key={`assoc-hidden-${i}`}>
+          <input type="hidden" name={`assoc[${i}][text]`} value={v.text} />
+          <input type="hidden" name={`assoc[${i}][short_description]`} value={v.short_description} />
+          <input
+            type="hidden"
+            name={`assoc[${i}][image_url]`}
+            value={v.image.type === 'url' ? v.image.url : ''}
+          />
+        </div>
       ))}
-      {/* Keep description in sync with first association for backward compat */}
-      <input type="hidden" name="description" value={associations[0] ?? ''} />
+      {/* Keep description in sync with first variant for backward compat */}
+      <input type="hidden" name="description" value={variants[0]?.text ?? ''} />
 
       {/* Main fields */}
       <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
@@ -184,41 +250,30 @@ export default function WordForm({ word }: { word?: Word }) {
       {/* Associations */}
       <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
         <div className="mb-4 flex items-center justify-between gap-2">
-          <h2 className="font-semibold">Ассоциации</h2>
-          <Button type="button" variant="outline" size="sm" onClick={addAssociation} className="gap-1.5">
+          <h2 className="font-semibold">Варианты ассоциаций</h2>
+          <Button type="button" variant="outline" size="sm" onClick={addVariant} className="gap-1.5">
             <Plus className="size-3.5" />
             Добавить вариант
           </Button>
         </div>
         <p className="mb-4 text-xs text-muted-foreground">
-          Можно добавить несколько вариантов ассоциации — пользователь увидит их все на карточке слова.
+          Каждый вариант — отдельная мнемоника со своей картинкой и описанием. Пользователь сможет переключаться между ними на карточке слова.
         </p>
-        <div className="space-y-4">
-          {associations.map((assoc, i) => (
-            <div key={i} className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <Label htmlFor={`assoc-${i}`} className="text-xs text-muted-foreground">
-                  {associations.length > 1 ? `Вариант ${i + 1}` : 'Разбор *'}
-                </Label>
-                {associations.length > 1 && (
-                  <button
-                    type="button"
-                    onClick={() => removeAssociation(i)}
-                    className="inline-flex items-center gap-1 text-[10px] text-destructive hover:underline"
-                  >
-                    <Trash2 className="size-3" />
-                    Удалить
-                  </button>
-                )}
-              </div>
-              <Textarea
-                id={`assoc-${i}`}
-                rows={5}
-                value={assoc}
-                onChange={e => updateAssociation(i, e.target.value)}
-                placeholder="Смех — слово звучит как «лафтер», похоже на «лавка» — представь лавку, с которой все смеются..."
-              />
-            </div>
+
+        <div className="space-y-5">
+          {variants.map((v, i) => (
+            <VariantEditor
+              key={i}
+              index={i}
+              total={variants.length}
+              variant={v}
+              onChangeText={text => updateVariant(i, { text })}
+              onChangeShortDesc={short_description => updateVariant(i, { short_description })}
+              onPickFile={file => setVariantImageFromFile(i, file)}
+              onChangeUrl={url => setVariantImageFromUrl(i, url)}
+              onClearImage={() => clearVariantImage(i)}
+              onRemove={() => removeVariant(i)}
+            />
           ))}
         </div>
       </div>
@@ -227,8 +282,11 @@ export default function WordForm({ word }: { word?: Word }) {
       <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
         <div className="mb-4 flex items-center gap-2">
           <ImagePlus className="size-4 text-muted-foreground" />
-          <h2 className="font-semibold">Изображение</h2>
+          <h2 className="font-semibold">Главное изображение</h2>
         </div>
+        <p className="mb-4 text-xs text-muted-foreground">
+          Используется в списках и в шапке карточки. Если у варианта своя картинка — она показывается внутри варианта.
+        </p>
 
         <div className="space-y-4">
           {preview && (
@@ -299,5 +357,130 @@ export default function WordForm({ word }: { word?: Word }) {
         </Button>
       </div>
     </form>
+  )
+}
+
+interface VariantEditorProps {
+  index: number
+  total: number
+  variant: VariantState
+  onChangeText: (v: string) => void
+  onChangeShortDesc: (v: string) => void
+  onPickFile: (file: File) => void
+  onChangeUrl: (url: string) => void
+  onClearImage: () => void
+  onRemove: () => void
+}
+
+function VariantEditor({
+  index, total, variant, onChangeText, onChangeShortDesc,
+  onPickFile, onChangeUrl, onClearImage, onRemove,
+}: VariantEditorProps) {
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const preview =
+    variant.image.type === 'url' ? variant.image.url
+    : variant.image.type === 'file' ? variant.image.preview
+    : ''
+
+  function handleClear() {
+    if (fileInputRef.current) fileInputRef.current.value = ''
+    onClearImage()
+  }
+
+  return (
+    <div className="rounded-lg border border-border bg-muted/20 p-4">
+      <div className="mb-3 flex items-center justify-between">
+        <span className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+          {total > 1 ? `Вариант ${index + 1}` : 'Ассоциация'}
+        </span>
+        {total > 1 && (
+          <button
+            type="button"
+            onClick={onRemove}
+            className="inline-flex items-center gap-1 text-xs text-destructive hover:underline"
+          >
+            <Trash2 className="size-3" />
+            Удалить вариант
+          </button>
+        )}
+      </div>
+
+      <div className="space-y-3">
+        <div className="space-y-1.5">
+          <Label htmlFor={`assoc-text-${index}`} className="text-xs">
+            Текст ассоциации {index === 0 && '*'}
+          </Label>
+          <Textarea
+            id={`assoc-text-${index}`}
+            rows={4}
+            value={variant.text}
+            onChange={e => onChangeText(e.target.value)}
+            placeholder="Pigeon — пиджн — звучит как «пиджак». Представь голубя в пиджаке..."
+            required={index === 0}
+          />
+        </div>
+
+        <div className="space-y-1.5">
+          <Label htmlFor={`assoc-short-${index}`} className="text-xs">
+            Короткое описание варианта
+          </Label>
+          <Input
+            id={`assoc-short-${index}`}
+            type="text"
+            value={variant.short_description}
+            onChange={e => onChangeShortDesc(e.target.value)}
+            placeholder="Голубь в пиджаке"
+          />
+        </div>
+
+        <div className="space-y-1.5">
+          <Label className="text-xs">Картинка варианта</Label>
+
+          {preview && (
+            <div className="relative aspect-video w-full overflow-hidden rounded-md border border-border">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={preview} alt={`вариант ${index + 1}`} className="h-full w-full object-cover" />
+              <Button
+                type="button"
+                variant="secondary"
+                size="icon"
+                onClick={handleClear}
+                className="absolute right-2 top-2 size-7 rounded-md"
+              >
+                <X className="size-3.5" />
+              </Button>
+            </div>
+          )}
+
+          {/* file input is always mounted so the chosen File survives submit */}
+          <label className={cn(
+            'flex aspect-video w-full cursor-pointer flex-col items-center justify-center rounded-md border border-dashed border-border bg-background text-center transition-colors hover:bg-muted/40',
+            preview && 'hidden'
+          )}>
+            <Upload className="mb-2 size-5 text-muted-foreground" />
+            <span className="text-xs font-medium">Загрузить картинку для варианта</span>
+            <input
+              ref={fileInputRef}
+              type="file"
+              name={`assoc[${index}][image_file]`}
+              accept="image/*"
+              className="hidden"
+              onChange={e => {
+                const file = e.target.files?.[0]
+                if (file) onPickFile(file)
+              }}
+            />
+          </label>
+
+          {!preview && (
+            <Input
+              type="url"
+              placeholder="…или URL картинки"
+              onChange={e => onChangeUrl(e.target.value)}
+            />
+          )}
+        </div>
+      </div>
+    </div>
   )
 }

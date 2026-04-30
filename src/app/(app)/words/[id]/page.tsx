@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, ArrowRight, BookOpen, Eye, FileText, Languages } from 'lucide-react'
+import AssociationVariants from './AssociationVariants'
 import { buttonVariants } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
@@ -151,33 +152,10 @@ export default async function WordPage({ params }: WordPageProps) {
             </div>
           )}
 
-          {/* Associations (multiple) */}
-          {word.associations && word.associations.length > 0 && (
-            <div className="space-y-3">
-              <p className="text-[10px] font-extrabold uppercase tracking-widest text-primary/60">
-                {word.associations.length > 1 ? `Ассоциации (${word.associations.length})` : 'Ассоциация'}
-              </p>
-              {word.associations.map((assoc, i) => (
-                <div key={i} className="rounded-2xl bg-primary/6 p-5">
-                  <div className="mb-3 flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <FileText className="size-3.5 text-primary/60" />
-                      {word.associations.length > 1 && (
-                        <span className="text-[10px] font-extrabold uppercase tracking-widest text-primary/60">
-                          Вариант {i + 1}
-                        </span>
-                      )}
-                    </div>
-                    <SpeakButton text={assoc} />
-                  </div>
-                  <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground/90">{assoc}</p>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Full analysis (legacy description field) */}
-          {word.description && (!word.associations || word.associations.length === 0) && (
+          {/* Associations (multiple — with per-variant image) */}
+          {word.associations && word.associations.length > 0 ? (
+            <AssociationVariants variants={word.associations} />
+          ) : word.description ? (
             <div className="rounded-2xl bg-primary/6 p-5">
               <div className="mb-3 flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
@@ -190,7 +168,7 @@ export default async function WordPage({ params }: WordPageProps) {
               </div>
               <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground/90">{word.description}</p>
             </div>
-          )}
+          ) : null}
 
           {/* Feedback */}
           <div className="rounded-2xl border border-border p-5">

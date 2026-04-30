@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import Link from 'next/link'
 import { ArrowLeft, Check, RotateCcw } from 'lucide-react'
 import { Word } from '@/lib/types'
@@ -52,12 +52,20 @@ export default function FlashcardSession({ words, category, backHref }: Flashcar
   const [queue, setQueue] = useState<Word[]>([...words])
   const [known, setKnown] = useState<Word[]>([])
   const [isFlipped, setIsFlipped] = useState(false)
+  const [variantIdx, setVariantIdx] = useState(0)
 
   const total = words.length
   const remaining = queue.length
   const isDone = remaining === 0
 
   const word = queue[0]
+  const variants = word?.associations ?? []
+  const currentVariant = variants[Math.min(variantIdx, variants.length - 1)]
+
+  // Reset variant tab when the visible word changes.
+  useEffect(() => {
+    setVariantIdx(0)
+  }, [word?.id])
   const progress = known.length / total * 100
 
   const handleReveal = useCallback(() => {
@@ -172,10 +180,50 @@ export default function FlashcardSession({ words, category, backHref }: Flashcar
               </div>
 
               <div className="mx-5 mb-5 flex-1 overflow-y-auto rounded-xl bg-primary/6 p-5">
-                <p className="mb-2 text-[10px] font-extrabold uppercase tracking-widest text-primary/60">
-                  Мнемо-ассоциация
-                </p>
-                {word.description ? (
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <p className="text-[10px] font-extrabold uppercase tracking-widest text-primary/60">
+                    Мнемо-ассоциация
+                  </p>
+                  {variants.length > 1 && (
+                    <div className="flex items-center gap-1">
+                      {variants.map((_, i) => (
+                        <button
+                          key={i}
+                          type="button"
+                          onClick={() => setVariantIdx(i)}
+                          className={cn(
+                            'inline-flex size-5 items-center justify-center rounded-full border text-[10px] font-bold transition-colors',
+                            i === variantIdx
+                              ? 'border-primary bg-primary text-primary-foreground'
+                              : 'border-border bg-background text-muted-foreground hover:bg-muted'
+                          )}
+                          aria-label={`Вариант ${i + 1}`}
+                        >
+                          {i + 1}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {currentVariant ? (
+                  <div className="space-y-2">
+                    {currentVariant.image_url && (
+                      <div className="overflow-hidden rounded-md border border-border bg-background">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={currentVariant.image_url}
+                          alt={currentVariant.short_description ?? `Вариант ${variantIdx + 1}`}
+                          className="max-h-32 w-full object-contain"
+                        />
+                      </div>
+                    )}
+                    {currentVariant.short_description && (
+                      <p className="text-xs font-semibold text-foreground">{currentVariant.short_description}</p>
+                    )}
+                    <p className="text-sm leading-relaxed text-foreground/90">{currentVariant.text}</p>
+                  </div>
+                ) : word.description ? (
                   <p className="text-sm leading-relaxed text-foreground/90">{word.description}</p>
                 ) : (
                   <p className="text-sm italic text-muted-foreground">Ассоциация не добавлена</p>

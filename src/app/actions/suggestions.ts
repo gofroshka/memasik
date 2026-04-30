@@ -54,11 +54,17 @@ export async function updateSuggestionStatusAction(formData: FormData) {
     if (fetchError || !suggestion) throw new Error('Предложение не найдено')
 
     const now = new Date().toISOString()
+    const variant = {
+      text: suggestion.association,
+      image_url: null,
+      short_description: null,
+    }
     const { error: insertError } = await supabase.from('words').insert({
       word: suggestion.word,
       translation: suggestion.translation,
       transcription: suggestion.transcription,
       description: suggestion.association,
+      associations: [variant],
       is_published: false,
       updated_at: now,
     })

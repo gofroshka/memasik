@@ -7,6 +7,12 @@ export interface Profile {
   created_at: string
 }
 
+export interface AssociationVariant {
+  text: string
+  image_url: string | null
+  short_description: string | null
+}
+
 export interface Word {
   id: string
   word: string
@@ -20,7 +26,7 @@ export interface Word {
   textbook_class: number | null
   textbook_part: number | null
   short_description: string | null
-  associations: string[]
+  associations: AssociationVariant[]
   created_at: string
   updated_at: string
 }
