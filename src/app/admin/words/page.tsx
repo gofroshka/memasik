@@ -7,7 +7,10 @@ export default async function AdminWordsPage() {
   const { data: words } = await supabase
     .from('words')
     .select('*')
-    .order('created_at', { ascending: false })
 
-  return <WordsClient words={(words ?? []) as Word[]} />
+  const sorted = ((words ?? []) as Word[]).sort((a, b) =>
+    (a.word ?? '').localeCompare(b.word ?? '', 'en', { sensitivity: 'base' })
+  )
+
+  return <WordsClient words={sorted} />
 }
