@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import Link from 'next/link'
 import { BarChart2, BookOpen, Eye, ImageOff, Lightbulb, MessageSquare, ThumbsDown, ThumbsUp, TrendingUp, Users } from 'lucide-react'
 import AllWordsStatsTable from './AllWordsStatsTable'
 
@@ -64,7 +65,7 @@ export default async function AdminAnalyticsPage() {
       {/* KPI */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Kpi icon={Eye} label="Просмотров" value={totalViews ?? 0} color="text-blue-600 bg-blue-500/10" />
-        <Kpi icon={Users} label="Пользователей" value={totalUsers ?? 0} color="text-violet-600 bg-violet-500/10" />
+        <Kpi icon={Users} label="Пользователей" value={totalUsers ?? 0} color="text-violet-600 bg-violet-500/10" href="/admin/analytics/users" />
         <Kpi icon={BookOpen} label="Слов" value={totalWords ?? 0} color="text-emerald-600 bg-emerald-500/10" />
         <Kpi icon={MessageSquare} label="Отзывов" value={totalFeedback} color="text-amber-600 bg-amber-500/10" />
       </div>
@@ -228,16 +229,24 @@ export default async function AdminAnalyticsPage() {
   )
 }
 
-function Kpi({ icon: Icon, label, value, color }: { icon: React.ElementType; label: string; value: number; color: string }) {
-  return (
-    <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
+function Kpi({ icon: Icon, label, value, color, href }: { icon: React.ElementType; label: string; value: number; color: string; href?: string }) {
+  const inner = (
+    <>
       <div className={`inline-flex size-9 items-center justify-center rounded-lg ${color}`}>
         <Icon className="size-4" />
       </div>
       <p className="mt-3 text-2xl font-extrabold">{value.toLocaleString('ru')}</p>
       <p className="mt-0.5 text-xs text-muted-foreground">{label}</p>
-    </div>
+    </>
   )
+  if (href) {
+    return (
+      <Link href={href} className="block rounded-xl border border-border bg-card p-4 shadow-sm transition-colors hover:border-foreground/20 hover:bg-muted/40">
+        {inner}
+      </Link>
+    )
+  }
+  return <div className="rounded-xl border border-border bg-card p-4 shadow-sm">{inner}</div>
 }
 
 function Section({ title, icon: Icon, children }: { title: string; icon?: React.ElementType; children: React.ReactNode }) {
