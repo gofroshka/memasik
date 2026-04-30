@@ -3,9 +3,10 @@ import Link from 'next/link'
 import WordCard from '@/components/WordCard'
 import FlashcardSession from './FlashcardSession'
 import { buttonVariants } from '@/components/ui/button'
-import { ArrowLeft, BookOpen, GraduationCap, X } from 'lucide-react'
+import { ArrowLeft, BookOpen, X } from 'lucide-react'
 import { Suspense } from 'react'
 import SearchBar from './SearchBar'
+import PracticePicker from './PracticePicker'
 import { cn } from '@/lib/utils'
 import { getPublishedWords, getUniqueCategories, getAvailableClasses } from '@/lib/repository/words'
 import { parseSection, sectionMeta, withSection } from '@/lib/sections'
@@ -16,6 +17,7 @@ interface LearnPageProps {
     q?: string
     category?: string
     mode?: string
+    shuffle?: string
     textbook_class?: string
     textbook_part?: string
     textbook_page?: string
@@ -24,7 +26,7 @@ interface LearnPageProps {
 
 export default async function LearnPage({ searchParams }: LearnPageProps) {
   const params = await searchParams
-  const { q, category, mode, textbook_class, textbook_part, textbook_page } = params
+  const { q, category, mode, shuffle, textbook_class, textbook_part, textbook_page } = params
   const section = parseSection(params.section)
   const meta = sectionMeta(section)
   const supabase = await createClient()
@@ -39,11 +41,19 @@ export default async function LearnPage({ searchParams }: LearnPageProps) {
   if (textbook_class) filterParams.set('textbook_class', textbook_class)
   if (textbook_part) filterParams.set('textbook_part', textbook_part)
   if (textbook_page) filterParams.set('textbook_page', textbook_page)
+  if (shuffle) filterParams.set('shuffle', shuffle)
 
   // ─── FLASHCARD MODE ─────────────────────────────────────────────
   if (mode === 'practice' && words.length > 0) {
     const backHref = `/learn?${filterParams}`
-    return <FlashcardSession words={words} category={category} backHref={backHref} />
+    return (
+      <FlashcardSession
+        words={words}
+        category={category}
+        backHref={backHref}
+        shuffle={shuffle === '1'}
+      />
+    )
   }
 
   // ─── BROWSE MODE ────────────────────────────────────────────────
@@ -62,63 +72,59 @@ export default async function LearnPage({ searchParams }: LearnPageProps) {
     <div className="mx-auto max-w-5xl space-y-8 px-4 py-8">
 
       {/* ─── Header ─── */}
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <Link
-            href="/"
-            className="mb-2 inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
-          >
-            <ArrowLeft className="size-3.5" />
-            <span className="text-base">{meta.emoji}</span>
-            {meta.title}
-          </Link>
-          {category ? (
-            <>
-              <Link
-                href={allLearnHref}
-                className="mb-2 mt-2 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
-              >
-                <ArrowLeft className="size-3.5" />
-                Все темы
-              </Link>
-              <h1 className="text-3xl font-extrabold">{category}</h1>
-              <p className="mt-0.5 text-sm text-muted-foreground">
-                {totalCount > 0
-                  ? `${totalCount} ${totalCount === 1 ? 'слово' : totalCount < 5 ? 'слова' : 'слов'}`
-                  : 'Слов не найдено'}
-              </p>
-            </>
-          ) : (
-            <>
-              <h1 className="text-3xl font-extrabold">{meta.learnHeading}</h1>
-              <p className="mt-0.5 text-sm text-muted-foreground">
-                {totalCount > 0 ? `${totalCount} карточек в библиотеке` : 'Библиотека пуста'}
-              </p>
-            </>
-          )}
-        </div>
-
-        {totalCount > 0 && (
-          <Link
-            href={`/learn?${new URLSearchParams([...filterParams, ['mode', 'practice']])}`}
-            className={cn(buttonVariants({ size: 'lg' }), 'shrink-0 gap-2 rounded-xl font-bold')}
-          >
-            <GraduationCap className="size-5" />
-            Учить с карточками
-          </Link>
+      <div>
+        <Link
+          href="/"
+          className="mb-2 inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+        >
+          <ArrowLeft className="size-3.5" />
+          <span className="text-base">{meta.emoji}</span>
+          {meta.title}
+        </Link>
+        {category ? (
+          <>
+            <Link
+              href={allLearnHref}
+              className="mb-2 mt-2 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
+            >
+              <ArrowLeft className="size-3.5" />
+              Все темы
+            </Link>
+            <h1 className="text-3xl font-extrabold">{category}</h1>
+            <p className="mt-0.5 text-sm text-muted-foreground">
+              {totalCount > 0
+                ? `${totalCount} ${totalCount === 1 ? 'слово' : totalCount < 5 ? 'слова' : 'слов'}`
+                : 'Слов не найдено'}
+            </p>
+          </>
+        ) : (
+          <>
+            <h1 className="text-3xl font-extrabold">{meta.learnHeading}</h1>
+            <p className="mt-0.5 text-sm text-muted-foreground">
+              {totalCount > 0 ? `${totalCount} карточек в библиотеке` : 'Библиотека пуста'}
+            </p>
+          </>
         )}
       </div>
 
+      {/* ─── Practice picker ─── */}
+      <PracticePicker
+        section={section}
+        categories={uniqueCategories}
+        availableClasses={availableClasses}
+        initial={{
+          category,
+          textbookClass: textbook_class,
+          textbookPart: textbook_part,
+          textbookPage: textbook_page,
+          shuffle: shuffle === '1',
+        }}
+        matchedCount={totalCount}
+      />
+
       {/* ─── Search bar ─── */}
       <Suspense>
-        <SearchBar
-          q={q}
-          category={category}
-          textbookClass={textbook_class}
-          textbookPart={textbook_part}
-          textbookPage={textbook_page}
-          availableClasses={availableClasses}
-        />
+        <SearchBar q={q} category={category} />
       </Suspense>
 
       {/* ─── Category pills ─── */}

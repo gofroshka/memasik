@@ -12,6 +12,16 @@ interface FlashcardSessionProps {
   words: Word[]
   category?: string
   backHref: string
+  shuffle?: boolean
+}
+
+function shuffleArray<T>(arr: T[]): T[] {
+  const out = [...arr]
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[out[i], out[j]] = [out[j], out[i]]
+  }
+  return out
 }
 
 // ─── Completion screen ──────────────────────────────────────────────
@@ -48,8 +58,8 @@ function CompletionScreen({
 }
 
 // ─── Main flashcard session ─────────────────────────────────────────
-export default function FlashcardSession({ words, category, backHref }: FlashcardSessionProps) {
-  const [queue, setQueue] = useState<Word[]>([...words])
+export default function FlashcardSession({ words, category, backHref, shuffle = false }: FlashcardSessionProps) {
+  const [queue, setQueue] = useState<Word[]>(() => shuffle ? shuffleArray(words) : [...words])
   const [known, setKnown] = useState<Word[]>([])
   const [isFlipped, setIsFlipped] = useState(false)
   const [variantIdx, setVariantIdx] = useState(0)
@@ -87,10 +97,10 @@ export default function FlashcardSession({ words, category, backHref }: Flashcar
   }, [])
 
   const handleRestart = useCallback(() => {
-    setQueue([...words])
+    setQueue(shuffle ? shuffleArray(words) : [...words])
     setKnown([])
     setIsFlipped(false)
-  }, [words])
+  }, [words, shuffle])
 
   if (isDone) {
     return (
