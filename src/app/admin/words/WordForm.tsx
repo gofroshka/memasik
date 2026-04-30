@@ -4,9 +4,15 @@ import { useActionState, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Word } from '@/lib/types'
 import { DEFAULT_SECTION, sectionMeta, type SectionId } from '@/lib/sections'
-import { Plus, Star, Trash2, Upload, X } from 'lucide-react'
+import { Check, ChevronDown, Plus, Star, Trash2, Upload, X } from 'lucide-react'
 import { saveWordAction } from '@/app/actions/words'
 import { Button } from '@/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
@@ -269,8 +275,53 @@ export default function WordForm({ word, section: sectionProp }: { word?: Word; 
 
       {/* Associations */}
       <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
-        <div className="mb-4 flex items-center justify-between gap-2">
-          <h2 className="font-semibold">Варианты ассоциаций</h2>
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-3">
+            <h2 className="font-semibold">Варианты ассоциаций</h2>
+            {variants.length > 1 && (() => {
+              const activeIdxLocal = variants.findIndex(v => v._id === activeId)
+              const idx = activeIdxLocal === -1 ? 0 : activeIdxLocal
+              const v = variants[idx]
+              const label = v?.short_description.trim() || (idx === 0 ? 'Основной' : `Вариант ${idx + 1}`)
+              return (
+                <DropdownMenu>
+                  <DropdownMenuTrigger
+                    className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary transition-colors hover:bg-primary/15 focus:outline-none"
+                  >
+                    {idx === 0 ? (
+                      <Star className="size-3 fill-primary text-primary" />
+                    ) : (
+                      <span className="rounded-full bg-foreground/10 px-1.5 py-0.5 text-[10px] font-bold">{idx + 1}</span>
+                    )}
+                    <span className="max-w-[180px] truncate">{label}</span>
+                    <ChevronDown className="size-3.5 opacity-70" />
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" sideOffset={6} className="min-w-[220px] py-1">
+                    {variants.map((vv, i) => {
+                      const itemLabel = vv.short_description.trim() || (i === 0 ? 'Основной' : `Вариант ${i + 1}`)
+                      return (
+                        <DropdownMenuItem
+                          key={vv._id}
+                          onClick={() => setActiveId(vv._id)}
+                          className="cursor-pointer gap-2 px-2 py-2 text-sm"
+                        >
+                          {i === 0 ? (
+                            <Star className="size-3.5 fill-primary text-primary" />
+                          ) : (
+                            <span className="inline-flex size-4 items-center justify-center rounded-full bg-foreground/10 text-[10px] font-bold">
+                              {i + 1}
+                            </span>
+                          )}
+                          <span className="min-w-0 flex-1 truncate">{itemLabel}</span>
+                          {vv._id === activeId && <Check className="size-3.5 text-primary" />}
+                        </DropdownMenuItem>
+                      )
+                    })}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )
+            })()}
+          </div>
           <Button type="button" variant="outline" size="sm" onClick={addVariant} className="gap-1.5">
             <Plus className="size-3.5" />
             Добавить вариант
@@ -279,35 +330,6 @@ export default function WordForm({ word, section: sectionProp }: { word?: Word; 
         <p className="mb-4 text-xs text-muted-foreground">
           Первый вариант — основной (он показывается по умолчанию на карточке слова и в флешкартах). Остальные пользователь увидит, переключаясь между ними.
         </p>
-
-        {variants.length > 1 && (
-          <div className="mb-4 flex flex-wrap gap-1.5 border-b border-border pb-3">
-            {variants.map((v, i) => {
-              const isActive = v._id === activeId
-              const label = v.short_description.trim() || (i === 0 ? 'Основной' : `Вариант ${i + 1}`)
-              return (
-                <button
-                  key={v._id}
-                  type="button"
-                  onClick={() => setActiveId(v._id)}
-                  className={cn(
-                    'inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs transition-colors',
-                    isActive
-                      ? 'border-primary/40 bg-primary/10 font-semibold text-primary'
-                      : 'border-border bg-card text-muted-foreground hover:bg-muted/50 hover:text-foreground'
-                  )}
-                >
-                  {i === 0 ? (
-                    <Star className="size-3 fill-primary text-primary" />
-                  ) : (
-                    <span className="rounded-full bg-foreground/10 px-1.5 py-0.5 text-[10px] font-bold">{i + 1}</span>
-                  )}
-                  <span className="max-w-[180px] truncate">{label}</span>
-                </button>
-              )
-            })}
-          </div>
-        )}
 
         {/* All editors stay mounted so chosen files survive tab switches; only
             the active one is visible. */}
