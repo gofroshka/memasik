@@ -15,7 +15,7 @@ export async function submitSuggestionAction(prevState: string | null, formData:
   const translation = (formData.get('translation') as string).trim()
   const transcription = ((formData.get('transcription') as string | null) ?? '').trim() || null
   const association = (formData.get('association') as string).trim()
-  const section = parseSection(formData.get('section') as string | null)
+  const section = parseSection((formData.get('section') as string | null) ?? undefined)
 
   const { error } = await supabase.from('user_suggestions').insert({
     user_id: user.id,
