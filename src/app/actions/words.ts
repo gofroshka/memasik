@@ -62,14 +62,11 @@ export async function saveWordAction(prevState: string | null, formData: FormDat
   const section = parseSection(getOptionalString(formData, 'section'))
   const word = getString(formData, 'word')
   const translation = getString(formData, 'translation')
-  const description = getString(formData, 'description')
   const category = getOptionalString(formData, 'category')
   const transcription = getOptionalString(formData, 'transcription')
-  const imageFile = formData.get('image_file') as File | null
   const textbookPage = getOptionalInt(formData, 'textbook_page')
   const textbookClass = getOptionalInt(formData, 'textbook_class')
   const textbookPart = getOptionalInt(formData, 'textbook_part')
-  const shortDescription = getOptionalString(formData, 'short_description')
 
   const dupQuery = supabase
     .from('words')
@@ -88,15 +85,13 @@ export async function saveWordAction(prevState: string | null, formData: FormDat
     return 'Ошибка загрузки картинки варианта: ' + (e instanceof Error ? e.message : String(e))
   }
 
-  let finalImageUrl = getOptionalString(formData, 'image_url')
-
-  if (imageFile && imageFile.size > 0) {
-    try {
-      finalImageUrl = await uploadWordImage(supabase, imageFile)
-    } catch (e) {
-      return 'Ошибка загрузки изображения: ' + (e instanceof Error ? e.message : String(e))
-    }
-  }
+  // Top-level image / short_description / description mirror the primary
+  // variant so the rest of the app (lists, search, learn page) keeps working
+  // without reaching into the associations array.
+  const primary = variants[0] ?? null
+  const finalImageUrl = primary?.image_url ?? null
+  const shortDescription = primary?.short_description ?? null
+  const description = primary?.text ?? ''
 
   const payload = {
     section,
@@ -175,9 +170,27 @@ export async function updateWordImageAction(formData: FormData) {
     imageUrl = urlData.publicUrl
   }
 
+  // Mirror the change into the primary variant so the editor and the user
+  // card stay in sync with the inline thumbnail.
+  const { data: existing } = await supabase
+    .from('words')
+    .select('associations')
+    .eq('id', id)
+    .single()
+  const variants = ((existing?.associations as AssociationVariant[] | null) ?? []).slice()
+  if (variants.length === 0) {
+    variants.push({ text: '', short_description: null, image_url: imageUrl ?? null })
+  } else {
+    variants[0] = { ...variants[0], image_url: imageUrl ?? null }
+  }
+
   const { error } = await supabase
     .from('words')
-    .update({ image_url: imageUrl ?? null, updated_at: new Date().toISOString() })
+    .update({
+      image_url: imageUrl ?? null,
+      associations: variants,
+      updated_at: new Date().toISOString(),
+    })
     .eq('id', id)
   if (error) throw new Error(error.message)
   revalidatePath('/admin/words')
@@ -191,9 +204,33 @@ export async function patchWordAction(formData: FormData) {
   if (!ALLOWED.includes(field as typeof ALLOWED[number]))
     throw new Error(`Field "${field}" is not patchable`)
   const value = getOptionalString(formData, 'value')
+
+  const update: Record<string, unknown> = {
+    [field]: value,
+    updated_at: new Date().toISOString(),
+  }
+
+  // Description and short_description live both on the word row and on the
+  // primary variant. Keep them mirrored so neither view goes stale.
+  if (field === 'description' || field === 'short_description') {
+    const { data: existing } = await supabase
+      .from('words')
+      .select('associations')
+      .eq('id', id)
+      .single()
+    const variants = ((existing?.associations as AssociationVariant[] | null) ?? []).slice()
+    const variantField = field === 'description' ? 'text' : 'short_description'
+    if (variants.length === 0) {
+      variants.push({ text: '', short_description: null, image_url: null, [variantField]: value ?? '' } as AssociationVariant)
+    } else {
+      variants[0] = { ...variants[0], [variantField]: value ?? (field === 'description' ? '' : null) }
+    }
+    update.associations = variants
+  }
+
   const { error } = await supabase
     .from('words')
-    .update({ [field]: value, updated_at: new Date().toISOString() })
+    .update(update)
     .eq('id', id)
   if (error) throw new Error(error.message)
   revalidatePath('/admin/words')

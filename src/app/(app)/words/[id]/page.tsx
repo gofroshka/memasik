@@ -89,16 +89,18 @@ export default async function WordPage({ params }: WordPageProps) {
 
       {/* ─── Word card ─── */}
       <Card className="gap-0 overflow-hidden p-0">
-        {/* Image */}
-        <div className="relative overflow-hidden bg-muted">
-          <ImageWithFallback
-            src={word.image_url}
-            alt={`Ассоциация для слова ${word.word}`}
-            imgClassName="w-full object-contain"
-            fallbackIconSize="size-12"
-            noImageText="Изображение не добавлено"
-          />
-        </div>
+        {/* Hero image (only for legacy words without per-variant data) */}
+        {!(word.associations && word.associations.length > 0) && (
+          <div className="relative overflow-hidden bg-muted">
+            <ImageWithFallback
+              src={word.image_url}
+              alt={`Ассоциация для слова ${word.word}`}
+              imgClassName="w-full object-contain"
+              fallbackIconSize="size-12"
+              noImageText="Изображение не добавлено"
+            />
+          </div>
+        )}
 
         {/* Content */}
         <CardContent className="space-y-5 p-6 md:p-8">
@@ -125,10 +127,28 @@ export default async function WordPage({ params }: WordPageProps) {
             </div>
           </div>
 
-          {/* Short description */}
-          {word.short_description && (
-            <p className="text-base leading-relaxed text-muted-foreground">{word.short_description}</p>
-          )}
+          {/* Associations (image + short description + text live here per variant) */}
+          {word.associations && word.associations.length > 0 ? (
+            <AssociationVariants variants={word.associations} />
+          ) : word.description ? (
+            <>
+              {word.short_description && (
+                <p className="text-base leading-relaxed text-muted-foreground">{word.short_description}</p>
+              )}
+              <div className="rounded-2xl bg-primary/6 p-5">
+                <div className="mb-3 flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <FileText className="size-3.5 text-primary/60" />
+                    <p className="text-[10px] font-extrabold uppercase tracking-widest text-primary/60">
+                      Полный разбор
+                    </p>
+                  </div>
+                  <SpeakButton text={word.description} />
+                </div>
+                <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground/90">{word.description}</p>
+              </div>
+            </>
+          ) : null}
 
           {/* Textbook reference */}
           {(word.textbook_class || word.textbook_page) && (
@@ -152,24 +172,6 @@ export default async function WordPage({ params }: WordPageProps) {
               )}
             </div>
           )}
-
-          {/* Associations (multiple — with per-variant image) */}
-          {word.associations && word.associations.length > 0 ? (
-            <AssociationVariants variants={word.associations} />
-          ) : word.description ? (
-            <div className="rounded-2xl bg-primary/6 p-5">
-              <div className="mb-3 flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <FileText className="size-3.5 text-primary/60" />
-                  <p className="text-[10px] font-extrabold uppercase tracking-widest text-primary/60">
-                    Полный разбор
-                  </p>
-                </div>
-                <SpeakButton text={word.description} />
-              </div>
-              <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground/90">{word.description}</p>
-            </div>
-          ) : null}
 
           {/* Feedback */}
           <div className="rounded-2xl border border-border p-5">

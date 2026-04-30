@@ -4,7 +4,7 @@ import { useActionState, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Word } from '@/lib/types'
 import { DEFAULT_SECTION, sectionMeta, type SectionId } from '@/lib/sections'
-import { ImagePlus, Link2, Plus, Star, Trash2, Upload, X } from 'lucide-react'
+import { Plus, Star, Trash2, Upload, X } from 'lucide-react'
 import { saveWordAction } from '@/app/actions/words'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -39,42 +39,29 @@ function seedVariants(word?: Word): VariantState[] {
       image: v.image_url ? { type: 'url' as const, url: v.image_url } : { type: 'none' as const },
     }))
   }
-  if (word?.description) {
-    return [{ _id: newVariantId(), text: word.description, short_description: '', image: { type: 'none' } }]
-  }
-  return [{ _id: newVariantId(), text: '', short_description: '', image: { type: 'none' } }]
+  // Legacy fallback: synthesise a single variant from the word's top-level
+  // fields (image, short description, description). This way opening an old
+  // word in the editor keeps everything visible, and saving migrates the
+  // data into the variants array.
+  return [{
+    _id: newVariantId(),
+    text: word?.description ?? '',
+    short_description: word?.short_description ?? '',
+    image: word?.image_url
+      ? { type: 'url' as const, url: word.image_url }
+      : { type: 'none' as const },
+  }]
 }
 
 export default function WordForm({ word, section: sectionProp }: { word?: Word; section?: SectionId }) {
   const router = useRouter()
   const [error, formAction, pending] = useActionState(saveWordAction, null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
   const section: SectionId = word?.section ?? sectionProp ?? DEFAULT_SECTION
   const meta = sectionMeta(section)
   const isRussian = section === 'russian'
 
-  const [imageState, setImageState] = useState<VariantImage>(
-    word?.image_url ? { type: 'url', url: word.image_url } : { type: 'none' }
-  )
-
   const [variants, setVariants] = useState<VariantState[]>(() => seedVariants(word))
   const [activeId, setActiveId] = useState<string>(() => variants[0]?._id ?? '')
-
-  // If active variant gets deleted (id no longer present), fall back to first.
-  const activeIndex = (() => {
-    const idx = variants.findIndex(v => v._id === activeId)
-    return idx === -1 ? 0 : idx
-  })()
-
-  const preview = imageState.type !== 'none'
-    ? (imageState.type === 'url' ? imageState.url : imageState.preview)
-    : ''
-
-  useEffect(() => {
-    if (imageState.type === 'file') {
-      return () => URL.revokeObjectURL(imageState.preview)
-    }
-  }, [imageState])
 
   // Clean up object URLs for variant images on unmount / replacement.
   useEffect(() => {
@@ -85,17 +72,6 @@ export default function WordForm({ word, section: sectionProp }: { word?: Word; 
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
-
-  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file) return
-    setImageState({ type: 'file', preview: URL.createObjectURL(file) })
-  }
-
-  function clearImage() {
-    setImageState({ type: 'none' })
-    if (fileInputRef.current) fileInputRef.current.value = ''
-  }
 
   function addVariant() {
     const id = newVariantId()
@@ -170,10 +146,10 @@ export default function WordForm({ word, section: sectionProp }: { word?: Word; 
     <form action={formAction} onSubmit={handleSubmit} className="max-w-2xl space-y-6">
       {word?.id && <input type="hidden" name="id" value={word.id} />}
       <input type="hidden" name="section" value={section} />
-      {imageState.type === 'url' && <input type="hidden" name="image_url" value={imageState.url} />}
-      {imageState.type === 'none' && <input type="hidden" name="image_url" value="" />}
 
-      {/* Per-variant hidden inputs — file inputs are rendered inline below */}
+      {/* Per-variant hidden inputs — file inputs are rendered inline below.
+          The server derives word.image_url, word.short_description and
+          word.description from the primary variant on save. */}
       {variants.map((v, i) => (
         <div key={`hidden-${v._id}`}>
           <input type="hidden" name={`assoc[${i}][text]`} value={v.text} />
@@ -185,8 +161,6 @@ export default function WordForm({ word, section: sectionProp }: { word?: Word; 
           />
         </div>
       ))}
-      {/* Keep description in sync with first variant for backward compat */}
-      <input type="hidden" name="description" value={variants[0]?.text ?? ''} />
 
       {/* Main fields */}
       <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
@@ -249,17 +223,6 @@ export default function WordForm({ word, section: sectionProp }: { word?: Word; 
                 />
               </div>
             )}
-          </div>
-
-          <div className="space-y-1.5">
-            <Label htmlFor="short_description">Краткое описание</Label>
-            <Input
-              id="short_description"
-              type="text"
-              name="short_description"
-              defaultValue={word?.short_description ?? ''}
-              placeholder={isRussian ? 'Букву О запомним так…' : 'Смех — лавка'}
-            />
           </div>
 
           {!isRussian && (
@@ -365,70 +328,6 @@ export default function WordForm({ word, section: sectionProp }: { word?: Word; 
               />
             </div>
           ))}
-        </div>
-      </div>
-
-      {/* Image */}
-      <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
-        <div className="mb-4 flex items-center gap-2">
-          <ImagePlus className="size-4 text-muted-foreground" />
-          <h2 className="font-semibold">Главное изображение</h2>
-        </div>
-        <p className="mb-4 text-xs text-muted-foreground">
-          Используется в списках и в шапке карточки. Если у варианта своя картинка — она показывается внутри варианта.
-        </p>
-
-        <div className="space-y-4">
-          {preview && (
-            <div className="relative aspect-video w-full overflow-hidden rounded-md border border-border">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={preview} alt="preview" className="h-full w-full object-cover" />
-              <Button
-                type="button"
-                variant="secondary"
-                size="icon"
-                onClick={clearImage}
-                className="absolute right-2 top-2 size-7 rounded-md"
-              >
-                <X className="size-3.5" />
-              </Button>
-            </div>
-          )}
-
-          <label
-            className={`flex aspect-video w-full cursor-pointer flex-col items-center justify-center rounded-md border border-dashed border-border bg-muted/30 text-center transition-colors hover:bg-muted/50 ${preview ? 'hidden' : ''}`}
-          >
-            <Upload className="mb-2 size-6 text-muted-foreground" />
-            <span className="text-sm font-medium">Загрузить изображение</span>
-            <span className="mt-0.5 text-xs text-muted-foreground">PNG, JPG, WebP</span>
-            <input
-              ref={fileInputRef}
-              type="file"
-              name="image_file"
-              accept="image/*"
-              className="hidden"
-              onChange={handleFileChange}
-            />
-          </label>
-
-          {!preview && (
-            <div className="space-y-1.5">
-              <Label htmlFor="image-url" className="flex items-center gap-1.5">
-                <Link2 className="size-3.5 text-muted-foreground" />
-                Или укажите URL
-              </Label>
-              <Input
-                id="image-url"
-                type="url"
-                placeholder="https://..."
-                defaultValue={imageState.type === 'url' ? imageState.url : ''}
-                onChange={e => {
-                  const val = e.target.value.trim()
-                  setImageState(val ? { type: 'url', url: val } : { type: 'none' })
-                }}
-              />
-            </div>
-          )}
         </div>
       </div>
 
