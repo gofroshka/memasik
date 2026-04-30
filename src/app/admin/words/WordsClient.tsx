@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils'
 import { Word } from '@/lib/types'
 import WordsListView from './WordsListView'
 import WordsTableView from './WordsTableView'
+import { sectionMeta, SECTIONS, withSection, type SectionId } from '@/lib/sections'
 
 type Mode = 'list' | 'table'
 type SortLang = 'en' | 'ru'
@@ -18,9 +19,12 @@ const SORT_LANG_KEY = 'admin-words-sort-lang'
 
 interface Props {
   words: Word[]
+  section: SectionId
 }
 
-export default function WordsClient({ words }: Props) {
+export default function WordsClient({ words, section }: Props) {
+  const meta = sectionMeta(section)
+  const newWordHref = withSection('/admin/words/new', section)
   const [mode, setMode] = useState<Mode>('list')
   const [sortLang, setSortLang] = useState<SortLang>('en')
   const [hydrated, setHydrated] = useState(false)
@@ -65,10 +69,30 @@ export default function WordsClient({ words }: Props) {
 
   return (
     <div className="space-y-6">
+      {/* Section switcher */}
+      <div className="inline-flex overflow-hidden rounded-full border border-border">
+        {SECTIONS.map(s => (
+          <Link
+            key={s.id}
+            href={withSection('/admin/words', s.id)}
+            className={cn(
+              'inline-flex items-center gap-1.5 px-4 py-1.5 text-sm transition-colors',
+              s.id === section
+                ? 'bg-primary text-primary-foreground font-semibold'
+                : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+              s.id !== SECTIONS[0].id && 'border-l border-border'
+            )}
+          >
+            <span>{s.emoji}</span>
+            <span>{s.title}</span>
+          </Link>
+        ))}
+      </div>
+
       {/* Header */}
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">Слова и ассоциации</h1>
+          <h1 className="text-2xl font-bold">{meta.title}</h1>
           <p className="mt-0.5 text-sm text-muted-foreground">
             {words.length} {words.length === 1 ? 'запись' : words.length < 5 ? 'записи' : 'записей'}
           </p>
@@ -107,7 +131,7 @@ export default function WordsClient({ words }: Props) {
               <span className="sm:hidden">Добавить</span>
             </Button>
           ) : (
-            <Link href="/admin/words/new" className={cn(buttonVariants({ size: 'sm' }), 'gap-1.5')}>
+            <Link href={newWordHref} className={cn(buttonVariants({ size: 'sm' }), 'gap-1.5')}>
               <Plus className="size-3.5" />
               <span className="hidden sm:inline">Добавить слово</span>
               <span className="sm:hidden">Добавить</span>
@@ -172,7 +196,7 @@ export default function WordsClient({ words }: Props) {
           <p className="mt-1 text-sm text-muted-foreground">
             Добавьте первую карточку, чтобы заполнить библиотеку.
           </p>
-          <Link href="/admin/words/new" className={cn(buttonVariants({ size: 'sm' }), 'mt-4 gap-1.5')}>
+          <Link href={newWordHref} className={cn(buttonVariants({ size: 'sm' }), 'mt-4 gap-1.5')}>
             <Plus className="size-3.5" />
             Добавить слово
           </Link>
@@ -197,7 +221,7 @@ export default function WordsClient({ words }: Props) {
           {/* Desktop table mode */}
           {isTable && (
             <div className="hidden md:block">
-              <WordsTableView words={visibleWords} adding={adding} onAddingChange={setAdding} />
+              <WordsTableView words={visibleWords} adding={adding} onAddingChange={setAdding} section={section} />
             </div>
           )}
         </>

@@ -2,26 +2,38 @@ import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import WordCard from '@/components/WordCard'
 import FlashcardSession from './FlashcardSession'
-import { Word } from '@/lib/types'
 import { buttonVariants } from '@/components/ui/button'
 import { ArrowLeft, BookOpen, GraduationCap, X } from 'lucide-react'
 import { Suspense } from 'react'
 import SearchBar from './SearchBar'
 import { cn } from '@/lib/utils'
 import { getPublishedWords, getUniqueCategories, getAvailableClasses } from '@/lib/repository/words'
+import { parseSection, sectionMeta, withSection } from '@/lib/sections'
 
 interface LearnPageProps {
-  searchParams: Promise<{ q?: string; category?: string; mode?: string; textbook_class?: string; textbook_part?: string; textbook_page?: string }>
+  searchParams: Promise<{
+    section?: string
+    q?: string
+    category?: string
+    mode?: string
+    textbook_class?: string
+    textbook_part?: string
+    textbook_page?: string
+  }>
 }
 
 export default async function LearnPage({ searchParams }: LearnPageProps) {
-  const { q, category, mode, textbook_class, textbook_part, textbook_page } = await searchParams
+  const params = await searchParams
+  const { q, category, mode, textbook_class, textbook_part, textbook_page } = params
+  const section = parseSection(params.section)
+  const meta = sectionMeta(section)
   const supabase = await createClient()
 
-  const words = await getPublishedWords(supabase, { q, category, textbook_class, textbook_part, textbook_page })
+  const words = await getPublishedWords(supabase, section, { q, category, textbook_class, textbook_part, textbook_page })
 
   // ─── Build current filter params (reused for practice & back links) ───
   const filterParams = new URLSearchParams()
+  filterParams.set('section', section)
   if (q) filterParams.set('q', q)
   if (category) filterParams.set('category', category)
   if (textbook_class) filterParams.set('textbook_class', textbook_class)
@@ -30,18 +42,21 @@ export default async function LearnPage({ searchParams }: LearnPageProps) {
 
   // ─── FLASHCARD MODE ─────────────────────────────────────────────
   if (mode === 'practice' && words.length > 0) {
-    const backHref = filterParams.size ? `/learn?${filterParams}` : '/learn'
+    const backHref = `/learn?${filterParams}`
     return <FlashcardSession words={words} category={category} backHref={backHref} />
   }
 
   // ─── BROWSE MODE ────────────────────────────────────────────────
   const [uniqueCategories, availableClasses] = await Promise.all([
-    getUniqueCategories(supabase),
-    getAvailableClasses(supabase),
+    getUniqueCategories(supabase, section),
+    getAvailableClasses(supabase, section),
   ])
 
   const isFiltered = !!(q || category || textbook_class || textbook_part || textbook_page)
   const totalCount = words.length
+
+  const allLearnHref = withSection('/learn', section)
+  const homeHref = withSection('/', section)
 
   return (
     <div className="mx-auto max-w-5xl space-y-8 px-4 py-8">
@@ -49,11 +64,19 @@ export default async function LearnPage({ searchParams }: LearnPageProps) {
       {/* ─── Header ─── */}
       <div className="flex items-start justify-between gap-4">
         <div>
+          <Link
+            href="/"
+            className="mb-2 inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+          >
+            <ArrowLeft className="size-3.5" />
+            <span className="text-base">{meta.emoji}</span>
+            {meta.title}
+          </Link>
           {category ? (
             <>
               <Link
-                href="/learn"
-                className="mb-2 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
+                href={allLearnHref}
+                className="mb-2 mt-2 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
               >
                 <ArrowLeft className="size-3.5" />
                 Все темы
@@ -67,7 +90,7 @@ export default async function LearnPage({ searchParams }: LearnPageProps) {
             </>
           ) : (
             <>
-              <h1 className="text-3xl font-extrabold">Все слова</h1>
+              <h1 className="text-3xl font-extrabold">{meta.learnHeading}</h1>
               <p className="mt-0.5 text-sm text-muted-foreground">
                 {totalCount > 0 ? `${totalCount} карточек в библиотеке` : 'Библиотека пуста'}
               </p>
@@ -102,7 +125,7 @@ export default async function LearnPage({ searchParams }: LearnPageProps) {
       {uniqueCategories.length > 0 && (
         <div className="flex flex-wrap gap-2">
           <Link
-            href={q ? `/learn?q=${encodeURIComponent(q)}` : '/learn'}
+            href={withSection('/learn', section, { q })}
             className={cn(
               'inline-flex h-8 items-center rounded-full border px-4 text-sm font-semibold transition-all',
               !category
@@ -115,7 +138,7 @@ export default async function LearnPage({ searchParams }: LearnPageProps) {
           {uniqueCategories.map(cat => (
             <Link
               key={cat}
-              href={`/learn?category=${encodeURIComponent(cat)}${q ? `&q=${encodeURIComponent(q)}` : ''}`}
+              href={withSection('/learn', section, { category: cat, q })}
               className={cn(
                 'inline-flex h-8 items-center rounded-full border px-4 text-sm font-semibold transition-all',
                 category === cat
@@ -147,13 +170,20 @@ export default async function LearnPage({ searchParams }: LearnPageProps) {
           <p className="mt-1 max-w-xs text-sm text-muted-foreground">
             {q ? 'Попробуйте другой запрос' : 'Добавьте первые карточки через панель администратора'}
           </p>
-          {isFiltered && (
+          {isFiltered ? (
             <Link
-              href="/learn"
+              href={allLearnHref}
               className={cn(buttonVariants({ variant: 'outline', size: 'sm' }), 'mt-5 gap-1.5')}
             >
               <X className="size-3.5" />
               Сбросить фильтры
+            </Link>
+          ) : (
+            <Link
+              href={homeHref}
+              className={cn(buttonVariants({ variant: 'outline', size: 'sm' }), 'mt-5')}
+            >
+              К разделам
             </Link>
           )}
         </div>

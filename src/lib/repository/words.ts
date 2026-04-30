@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Word } from '@/lib/types'
+import type { SectionId } from '@/lib/sections'
 
 export interface WordFilters {
   q?: string
@@ -15,8 +16,17 @@ export async function getWordById(supabase: SupabaseClient, id: string): Promise
   return data as Word
 }
 
-export async function getPublishedWords(supabase: SupabaseClient, filters: WordFilters = {}): Promise<Word[]> {
-  let query = supabase.from('words').select('*').eq('is_published', true).order('word')
+export async function getPublishedWords(
+  supabase: SupabaseClient,
+  section: SectionId,
+  filters: WordFilters = {},
+): Promise<Word[]> {
+  let query = supabase
+    .from('words')
+    .select('*')
+    .eq('is_published', true)
+    .eq('section', section)
+    .order('word')
   const { q, category, textbook_class, textbook_part, textbook_page } = filters
   if (q) query = query.or(`word.ilike.%${q}%,translation.ilike.%${q}%`)
   if (category) query = query.eq('category', category)
@@ -27,31 +37,34 @@ export async function getPublishedWords(supabase: SupabaseClient, filters: WordF
   return (data ?? []) as Word[]
 }
 
-export async function getUniqueCategories(supabase: SupabaseClient): Promise<string[]> {
+export async function getUniqueCategories(supabase: SupabaseClient, section: SectionId): Promise<string[]> {
   const { data } = await supabase
     .from('words')
     .select('category')
     .eq('is_published', true)
+    .eq('section', section)
     .not('category', 'is', null)
   return [...new Set((data ?? []).map(r => r.category).filter(Boolean))] as string[]
 }
 
-export async function getAvailableClasses(supabase: SupabaseClient): Promise<number[]> {
+export async function getAvailableClasses(supabase: SupabaseClient, section: SectionId): Promise<number[]> {
   const { data } = await supabase
     .from('words')
     .select('textbook_class')
     .eq('is_published', true)
+    .eq('section', section)
     .not('textbook_class', 'is', null)
   return [...new Set((data ?? []).map(r => r.textbook_class).filter(Boolean))].sort((a, b) => a - b) as number[]
 }
 
 export async function getAdjacentWords(
   supabase: SupabaseClient,
-  wordText: string
+  section: SectionId,
+  wordText: string,
 ): Promise<{ prev: { id: string; word: string } | null; next: { id: string; word: string } | null }> {
   const [{ data: prevRows }, { data: nextRows }] = await Promise.all([
-    supabase.from('words').select('id, word').lt('word', wordText).order('word', { ascending: false }).limit(1),
-    supabase.from('words').select('id, word').gt('word', wordText).order('word', { ascending: true }).limit(1),
+    supabase.from('words').select('id, word').eq('section', section).lt('word', wordText).order('word', { ascending: false }).limit(1),
+    supabase.from('words').select('id, word').eq('section', section).gt('word', wordText).order('word', { ascending: true }).limit(1),
   ])
   return {
     prev: (prevRows?.[0] ?? null) as { id: string; word: string } | null,

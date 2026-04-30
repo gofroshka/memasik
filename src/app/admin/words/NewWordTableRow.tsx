@@ -6,10 +6,12 @@ import { createWordInlineAction } from '@/app/actions/words'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import type { WordsColumn } from './WordsTableView'
+import type { SectionId } from '@/lib/sections'
 
 interface Props {
   onCancel: () => void
   columns: WordsColumn[]
+  section: SectionId
 }
 
 const inputCls = 'w-full rounded border border-input bg-background px-2 py-1 text-sm placeholder:text-muted-foreground/40 focus:outline-none focus:ring-2 focus:ring-ring/50'
@@ -32,7 +34,7 @@ async function autoTranslate(text: string): Promise<string | null> {
   }
 }
 
-export default function NewWordTableRow({ onCancel, columns }: Props) {
+export default function NewWordTableRow({ onCancel, columns, section }: Props) {
   const [pending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
   const [translating, setTranslating] = useState(false)
@@ -66,6 +68,7 @@ export default function NewWordTableRow({ onCancel, columns }: Props) {
     setError(null)
     startTransition(async () => {
       const fd = new FormData()
+      fd.set('section', section)
       fd.set('word', word.trim())
       fd.set('translation', translation.trim())
       if (category.trim()) fd.set('category', category.trim())

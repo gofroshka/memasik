@@ -1,8 +1,9 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { buttonVariants } from '@/components/ui/button'
-import { ArrowRight, BookOpen } from 'lucide-react'
+import { ArrowLeft, ArrowRight, BookOpen, Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { isSectionId, sectionMeta, SECTIONS, withSection, type SectionId } from '@/lib/sections'
 
 // Color palettes for category cards (index-based)
 const CATEGORY_COLORS = [
@@ -46,12 +47,91 @@ function wordCountLabel(n: number) {
   return `${n} слов`
 }
 
-export default async function HomePage() {
+interface HomePageProps {
+  searchParams: Promise<{ section?: string }>
+}
+
+export default async function HomePage({ searchParams }: HomePageProps) {
+  const params = await searchParams
+  const section = isSectionId(params.section) ? (params.section as SectionId) : null
+
+  // No section selected → show section picker.
+  if (!section) {
+    return <SectionPicker />
+  }
+
+  return <SectionHome section={section} />
+}
+
+// ─── Section picker (initial entry) ───────────────────────────────
+async function SectionPicker() {
   const supabase = await createClient()
+  const { data: counts } = await supabase
+    .from('words')
+    .select('section')
+    .eq('is_published', true)
+
+  const perSection = (counts ?? []).reduce<Record<string, number>>((acc, row) => {
+    acc[row.section] = (acc[row.section] ?? 0) + 1
+    return acc
+  }, {})
+
+  return (
+    <div className="mx-auto max-w-3xl space-y-10 px-4 py-12">
+      <section className="space-y-3 text-center">
+        <h1 className="text-4xl font-extrabold leading-tight sm:text-5xl">
+          С чего начнём? 🧠
+        </h1>
+        <p className="mx-auto max-w-md text-base text-muted-foreground">
+          Выберите раздел — внутри карточки, темы и тренировки.
+        </p>
+      </section>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        {SECTIONS.map(s => {
+          const count = perSection[s.id] ?? 0
+          return (
+            <Link
+              key={s.id}
+              href={withSection('/', s.id)}
+              className={cn(
+                'group flex flex-col gap-4 rounded-2xl border border-border bg-card p-7 shadow-sm transition-all duration-150',
+                'hover:-translate-y-1 hover:border-primary/40 hover:shadow-md'
+              )}
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-5xl leading-none" aria-hidden>{s.emoji}</span>
+                <ArrowRight className="size-5 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
+              </div>
+              <div className="space-y-1">
+                <h2 className="text-xl font-extrabold leading-tight">{s.title}</h2>
+                <p className="text-sm leading-relaxed text-muted-foreground">{s.tagline}</p>
+              </div>
+              <div className="mt-auto flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
+                <Sparkles className="size-3.5" />
+                {count > 0 ? `${count} ${count === 1 ? 'карточка' : count < 5 ? 'карточки' : 'карточек'}` : 'Скоро карточки'}
+              </div>
+            </Link>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+// ─── Per-section home (categories grid) ───────────────────────────
+async function SectionHome({ section }: { section: SectionId }) {
+  const supabase = await createClient()
+  const meta = sectionMeta(section)
 
   const [{ count: total }, { data: catRows }] = await Promise.all([
-    supabase.from('words').select('*', { count: 'exact', head: true }).eq('is_published', true),
-    supabase.from('words').select('category').eq('is_published', true).not('category', 'is', null),
+    supabase.from('words').select('*', { count: 'exact', head: true })
+      .eq('is_published', true)
+      .eq('section', section),
+    supabase.from('words').select('category')
+      .eq('is_published', true)
+      .eq('section', section)
+      .not('category', 'is', null),
   ])
 
   const categoryCounts = (catRows ?? []).reduce<Record<string, number>>((acc, row) => {
@@ -61,29 +141,37 @@ export default async function HomePage() {
 
   const categories = Object.entries(categoryCounts).sort((a, b) => b[1] - a[1])
   const hasCategories = categories.length > 0
+  const allLearnHref = withSection('/learn', section)
 
   return (
-    <div className="mx-auto max-w-5xl space-y-12 py-10 px-4">
+    <div className="mx-auto max-w-5xl space-y-10 py-10 px-4">
+
+      {/* Section header */}
+      <Link
+        href="/"
+        className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+      >
+        <ArrowLeft className="size-3.5" />
+        К выбору раздела
+      </Link>
 
       {/* ─── Greeting ─── */}
       <section className="space-y-3 text-center">
+        <p className="text-3xl">{meta.emoji}</p>
         <h1 className="text-4xl font-extrabold leading-tight sm:text-5xl">
-          Учим слова через образы 🧠
+          {meta.title}
         </h1>
         <p className="mx-auto max-w-md text-base text-muted-foreground">
-          {hasCategories
-            ? 'Выбери тему — и начни прямо сейчас'
-            : 'Библиотека скоро пополнится новыми карточками'}
+          {hasCategories ? meta.tagline : 'Библиотека скоро пополнится новыми карточками'}
         </p>
       </section>
 
       {/* ─── Category grid ─── */}
       {hasCategories ? (
         <section className="space-y-4">
-          {/* Browse all */}
           <div className="text-center">
             <Link
-              href="/learn"
+              href={allLearnHref}
               className={cn(buttonVariants({ variant: 'ghost', size: 'sm' }), 'gap-1.5 text-muted-foreground')}
             >
               <BookOpen className="size-3.5" />
@@ -98,7 +186,7 @@ export default async function HomePage() {
               return (
                 <Link
                   key={cat}
-                  href={`/learn?category=${encodeURIComponent(cat)}`}
+                  href={withSection('/learn', section, { category: cat })}
                   className={cn(
                     'group flex flex-col gap-3 rounded-2xl border p-5 transition-all duration-150',
                     'hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:shadow-sm',
@@ -116,25 +204,35 @@ export default async function HomePage() {
             })}
           </div>
         </section>
+      ) : total && total > 0 ? (
+        <section className="rounded-2xl border border-dashed border-border bg-card py-12 text-center">
+          <p className="text-3xl">📦</p>
+          <h2 className="mt-3 text-xl font-bold">{total} слов без категорий</h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Откройте общий список или начните тренировку
+          </p>
+          <Link href={allLearnHref} className={cn(buttonVariants({ size: 'sm' }), 'mt-5')}>
+            Открыть список
+          </Link>
+        </section>
       ) : (
-        /* No categories — show library link */
         <section className="rounded-2xl border border-dashed border-border bg-card py-16 text-center">
           <p className="text-4xl">📚</p>
           <h2 className="mt-4 text-xl font-bold">Библиотека пока пуста</h2>
           <p className="mt-2 text-sm text-muted-foreground">
             Добавьте первые карточки через панель администратора
           </p>
-          <Link href="/admin" className={cn(buttonVariants({ size: 'sm' }), 'mt-6')}>
+          <Link href={withSection('/admin/words', section)} className={cn(buttonVariants({ size: 'sm' }), 'mt-6')}>
             Открыть панель
           </Link>
         </section>
       )}
 
-      {/* ─── How it works — for parents ─── */}
+      {/* ─── How it works ─── */}
       <section className="rounded-2xl bg-secondary/60 px-6 py-8">
         <div className="grid gap-6 sm:grid-cols-3">
           {[
-            { n: '1', title: 'Выбрать тему', text: 'Животные, еда, числа — всё по категориям' },
+            { n: '1', title: 'Выбрать тему', text: 'Темы и категории внутри раздела' },
             { n: '2', title: 'Учить по карточкам', text: 'Слово → образ → ассоциация, одна карточка за раз' },
             { n: '3', title: 'Повторять снова', text: 'Вернитесь через день — и слово останется навсегда' },
           ].map(step => (

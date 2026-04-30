@@ -6,6 +6,7 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { AssociationVariant } from '@/lib/types'
+import { parseSection } from '@/lib/sections'
 
 async function uploadWordImage(supabase: SupabaseClient, file: File): Promise<string> {
   const ext = file.name.split('.').pop()
@@ -58,6 +59,7 @@ export async function saveWordAction(prevState: string | null, formData: FormDat
   const supabase = await createClient()
 
   const id = getOptionalString(formData, 'id')
+  const section = parseSection(getOptionalString(formData, 'section'))
   const word = getString(formData, 'word')
   const translation = getString(formData, 'translation')
   const description = getString(formData, 'description')
@@ -69,7 +71,12 @@ export async function saveWordAction(prevState: string | null, formData: FormDat
   const textbookPart = getOptionalInt(formData, 'textbook_part')
   const shortDescription = getOptionalString(formData, 'short_description')
 
-  const dupQuery = supabase.from('words').select('id').ilike('word', word.trim()).limit(1)
+  const dupQuery = supabase
+    .from('words')
+    .select('id')
+    .eq('section', section)
+    .ilike('word', word.trim())
+    .limit(1)
   if (id) dupQuery.neq('id', id)
   const { data: dups } = await dupQuery
   if (dups && dups.length > 0) return `Слово «${word.trim()}» уже есть в списке`
@@ -92,6 +99,7 @@ export async function saveWordAction(prevState: string | null, formData: FormDat
   }
 
   const payload = {
+    section,
     word,
     translation,
     description,
@@ -114,18 +122,25 @@ export async function saveWordAction(prevState: string | null, formData: FormDat
     if (error) return error.message
   }
 
-  redirect('/admin/words')
+  redirect(`/admin/words?section=${section}`)
 }
 
 export async function createWordInlineAction(formData: FormData): Promise<string | null> {
   const supabase = await createClient()
   const word = getString(formData, 'word')
   const translation = getString(formData, 'translation')
+  const section = parseSection(getOptionalString(formData, 'section'))
 
-  const { data: dups } = await supabase.from('words').select('id').ilike('word', word.trim()).limit(1)
+  const { data: dups } = await supabase
+    .from('words')
+    .select('id')
+    .eq('section', section)
+    .ilike('word', word.trim())
+    .limit(1)
   if (dups && dups.length > 0) return `Слово «${word.trim()}» уже есть в списке`
 
   const { error } = await supabase.from('words').insert({
+    section,
     word,
     translation,
     description: '',

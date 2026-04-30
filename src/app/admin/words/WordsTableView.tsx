@@ -12,10 +12,13 @@ import ImageInlineEdit from './ImageInlineEdit'
 import DeleteWordButton from './DeleteWordButton'
 import NewWordTableRow from './NewWordTableRow'
 
+import type { SectionId } from '@/lib/sections'
+
 interface Props {
   words: Word[]
   adding: boolean
   onAddingChange: (v: boolean) => void
+  section: SectionId
 }
 
 export type WordsColumnId =
@@ -55,7 +58,7 @@ const STORAGE_KEY = 'words-columns'
 const th = 'px-4 py-3 text-left text-[11px] font-medium uppercase tracking-wide text-muted-foreground whitespace-nowrap select-none'
 const td = 'px-4 py-3 align-top'
 
-export default function WordsTableView({ words, adding, onAddingChange }: Props) {
+export default function WordsTableView({ words, adding, onAddingChange, section }: Props) {
   const [columns, setColumns] = useState<WordsColumn[]>(() => {
     if (typeof window !== 'undefined') {
       try {
@@ -185,7 +188,7 @@ export default function WordsTableView({ words, adding, onAddingChange }: Props)
         </thead>
         <tbody className="divide-y divide-border">
           {adding && (
-            <NewWordTableRow columns={columns} onCancel={() => onAddingChange(false)} />
+            <NewWordTableRow columns={columns} section={section} onCancel={() => onAddingChange(false)} />
           )}
           {words.map(word => (
             <tr key={word.id} className="transition-colors hover:bg-muted/20">

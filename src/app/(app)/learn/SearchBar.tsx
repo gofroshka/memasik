@@ -1,12 +1,13 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 import { Search, X } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { buttonVariants } from '@/components/ui/button'
+import { parseSection } from '@/lib/sections'
 
 interface SearchBarProps {
   q?: string
@@ -19,6 +20,8 @@ interface SearchBarProps {
 
 export default function SearchBar({ q, category, textbookClass, textbookPart, textbookPage, availableClasses }: SearchBarProps) {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const section = parseSection(searchParams.get('section') ?? undefined)
   const inputRef = useRef<HTMLInputElement>(null)
   const pageRef = useRef<HTMLInputElement>(null)
   const [selectedClass, setSelectedClass] = useState(textbookClass ?? '')
@@ -33,6 +36,7 @@ export default function SearchBar({ q, category, textbookClass, textbookPart, te
 
   function buildParams(overrides: Record<string, string> = {}) {
     const params = new URLSearchParams()
+    params.set('section', section)
     const value = overrides.q ?? inputRef.current?.value.trim() ?? ''
     const cls = overrides.textbook_class ?? selectedClass
     const part = overrides.textbook_part ?? selectedPart
@@ -48,7 +52,7 @@ export default function SearchBar({ q, category, textbookClass, textbookPart, te
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     const params = buildParams()
-    router.push(`/learn${params.size ? `?${params}` : ''}`)
+    router.push(`/learn?${params}`)
   }
 
   function handleReset() {
@@ -57,21 +61,22 @@ export default function SearchBar({ q, category, textbookClass, textbookPart, te
     setSelectedClass('')
     setSelectedPart('')
     const params = new URLSearchParams()
+    params.set('section', section)
     if (category) params.set('category', category)
-    router.push(`/learn${params.size ? `?${params}` : ''}`)
+    router.push(`/learn?${params}`)
   }
 
   function handleClassChange(val: string) {
     setSelectedClass(val)
     if (!val) setSelectedPart('')
     const params = buildParams({ textbook_class: val, textbook_part: val ? selectedPart : '' })
-    router.push(`/learn${params.size ? `?${params}` : ''}`)
+    router.push(`/learn?${params}`)
   }
 
   function handlePartChange(val: string) {
     setSelectedPart(val)
     const params = buildParams({ textbook_part: val })
-    router.push(`/learn${params.size ? `?${params}` : ''}`)
+    router.push(`/learn?${params}`)
   }
 
   const isFiltered = !!(q || category || textbookClass || textbookPart || textbookPage)

@@ -3,6 +3,9 @@ import { deleteSuggestionAction, updateSuggestionStatusAction } from '@/app/acti
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Check, Trash2, X } from 'lucide-react'
+import Link from 'next/link'
+import { parseSection, sectionMeta, SECTIONS, withSection } from '@/lib/sections'
+import { cn } from '@/lib/utils'
 
 const statusLabel: Record<string, string> = {
   pending: 'На проверке',
@@ -16,20 +19,47 @@ const statusVariant: Record<string, 'secondary' | 'outline' | 'destructive'> = {
   rejected: 'destructive',
 }
 
-export default async function AdminSuggestionsPage() {
+interface AdminSuggestionsPageProps {
+  searchParams: Promise<{ section?: string }>
+}
+
+export default async function AdminSuggestionsPage({ searchParams }: AdminSuggestionsPageProps) {
+  const params = await searchParams
+  const section = parseSection(params.section)
+  const meta = sectionMeta(section)
   const supabase = await createClient()
 
   const { data: suggestions } = await supabase
     .from('user_suggestions')
     .select('*, profiles!user_suggestions_profile_fk(full_name)')
+    .eq('section', section)
     .order('created_at', { ascending: false })
 
   const pending = suggestions?.filter(s => s.status === 'pending').length ?? 0
 
   return (
     <div className="space-y-6">
+      <div className="inline-flex overflow-hidden rounded-full border border-border">
+        {SECTIONS.map(s => (
+          <Link
+            key={s.id}
+            href={withSection('/admin/suggestions', s.id)}
+            className={cn(
+              'inline-flex items-center gap-1.5 px-4 py-1.5 text-sm transition-colors',
+              s.id === section
+                ? 'bg-primary text-primary-foreground font-semibold'
+                : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+              s.id !== SECTIONS[0].id && 'border-l border-border'
+            )}
+          >
+            <span>{s.emoji}</span>
+            <span>{s.title}</span>
+          </Link>
+        ))}
+      </div>
+
       <div>
-        <h1 className="text-2xl font-bold">Предложения пользователей</h1>
+        <h1 className="text-2xl font-bold">Предложения · {meta.title}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           {pending > 0 ? `${pending} ожидают проверки` : 'Нет новых предложений'}
         </p>
@@ -45,7 +75,9 @@ export default async function AdminSuggestionsPage() {
                     <span className="text-lg font-extrabold">{s.word}</span>
                     <span className="text-muted-foreground">—</span>
                     <span className="font-semibold">{s.translation}</span>
-                    <span className="text-xs text-muted-foreground">[{s.transcription}]</span>
+                    {s.transcription && (
+                      <span className="text-xs text-muted-foreground">[{s.transcription}]</span>
+                    )}
                   </div>
                   {s.profiles && (
                     <p className="text-xs text-muted-foreground">

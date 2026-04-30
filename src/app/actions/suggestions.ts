@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
+import { parseSection } from '@/lib/sections'
 
 export async function submitSuggestionAction(prevState: string | null, formData: FormData) {
   const supabase = await createClient()
@@ -12,8 +13,9 @@ export async function submitSuggestionAction(prevState: string | null, formData:
 
   const word = (formData.get('word') as string).trim()
   const translation = (formData.get('translation') as string).trim()
-  const transcription = (formData.get('transcription') as string).trim()
+  const transcription = ((formData.get('transcription') as string | null) ?? '').trim() || null
   const association = (formData.get('association') as string).trim()
+  const section = parseSection(formData.get('section') as string | null)
 
   const { error } = await supabase.from('user_suggestions').insert({
     user_id: user.id,
@@ -21,11 +23,12 @@ export async function submitSuggestionAction(prevState: string | null, formData:
     translation,
     transcription,
     association,
+    section,
   })
 
   if (error) return error.message
 
-  redirect('/suggest?success=1')
+  redirect(`/suggest?section=${section}&success=1`)
 }
 
 export async function deleteSuggestionAction(formData: FormData) {
@@ -65,6 +68,7 @@ export async function updateSuggestionStatusAction(formData: FormData) {
       transcription: suggestion.transcription,
       description: suggestion.association,
       associations: [variant],
+      section: suggestion.section ?? 'english',
       is_published: false,
       updated_at: now,
     })

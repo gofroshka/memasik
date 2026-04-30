@@ -10,6 +10,7 @@ import FeedbackButtons from '@/components/FeedbackButtons'
 import SpeakButton from '@/components/SpeakButton'
 import ImageWithFallback from '@/components/ImageWithFallback'
 import { getWordById, getAdjacentWords } from '@/lib/repository/words'
+import { withSection } from '@/lib/sections'
 
 interface WordPageProps {
   params: Promise<{ id: string }>
@@ -28,7 +29,7 @@ export default async function WordPage({ params }: WordPageProps) {
   supabase.from('word_views').insert({ word_id: id, user_id: user?.id ?? null }).then(() => {})
 
   const [{ prev, next }, { data: feedbackRows }, { count: viewCount }] = await Promise.all([
-    getAdjacentWords(supabase, word.word),
+    getAdjacentWords(supabase, word.section, word.word),
     supabase.from('word_feedback').select('vote, user_id').eq('word_id', id),
     supabase.from('word_views').select('*', { count: 'exact', head: true }).eq('word_id', id),
   ])
@@ -38,8 +39,8 @@ export default async function WordPage({ params }: WordPageProps) {
   const userVote = user ? (feedbackRows?.find(f => f.user_id === user.id)?.vote ?? null) : null
 
   const backHref = word.category
-    ? `/learn?category=${encodeURIComponent(word.category)}`
-    : '/learn'
+    ? withSection('/learn', word.section, { category: word.category })
+    : withSection('/learn', word.section)
 
   return (
     <div className="mx-auto max-w-2xl space-y-5 px-4 py-8">

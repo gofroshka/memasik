@@ -6,6 +6,7 @@ import { ArrowLeft } from 'lucide-react'
 import { buttonVariants } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { getWordById } from '@/lib/repository/words'
+import { withSection } from '@/lib/sections'
 
 interface EditWordPageProps {
   params: Promise<{ id: string }>
@@ -21,7 +22,7 @@ export default async function EditWordPage({ params }: EditWordPageProps) {
   return (
     <div className="space-y-6">
       <Link
-        href="/admin/words"
+        href={withSection('/admin/words', word.section)}
         className={cn(buttonVariants({ variant: 'ghost', size: 'sm' }), 'w-fit gap-1.5 px-2 text-muted-foreground')}
       >
         <ArrowLeft className="size-3.5" />

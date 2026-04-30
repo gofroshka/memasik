@@ -1,3 +1,5 @@
+import type { SectionId } from './sections'
+
 export type Role = 'user' | 'admin'
 
 export interface Profile {
@@ -15,6 +17,7 @@ export interface AssociationVariant {
 
 export interface Word {
   id: string
+  section: SectionId
   word: string
   translation: string
   description: string

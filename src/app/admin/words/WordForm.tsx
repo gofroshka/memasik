@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Word } from '@/lib/types'
+import { DEFAULT_SECTION, sectionMeta, type SectionId } from '@/lib/sections'
 import { ImagePlus, Link2, Plus, Star, Trash2, Upload, X } from 'lucide-react'
 import { saveWordAction } from '@/app/actions/words'
 import { Button } from '@/components/ui/button'
@@ -44,10 +45,13 @@ function seedVariants(word?: Word): VariantState[] {
   return [{ _id: newVariantId(), text: '', short_description: '', image: { type: 'none' } }]
 }
 
-export default function WordForm({ word }: { word?: Word }) {
+export default function WordForm({ word, section: sectionProp }: { word?: Word; section?: SectionId }) {
   const router = useRouter()
   const [error, formAction, pending] = useActionState(saveWordAction, null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const section: SectionId = word?.section ?? sectionProp ?? DEFAULT_SECTION
+  const meta = sectionMeta(section)
+  const isRussian = section === 'russian'
 
   const [imageState, setImageState] = useState<VariantImage>(
     word?.image_url ? { type: 'url', url: word.image_url } : { type: 'none' }
@@ -140,6 +144,7 @@ export default function WordForm({ word }: { word?: Word }) {
   return (
     <form action={formAction} className="max-w-2xl space-y-6">
       {word?.id && <input type="hidden" name="id" value={word.id} />}
+      <input type="hidden" name="section" value={section} />
       {imageState.type === 'url' && <input type="hidden" name="image_url" value={imageState.url} />}
       {imageState.type === 'none' && <input type="hidden" name="image_url" value="" />}
 
@@ -160,33 +165,38 @@ export default function WordForm({ word }: { word?: Word }) {
 
       {/* Main fields */}
       <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
-        <h2 className="mb-5 font-semibold">
-          {word ? 'Редактирование карточки' : 'Новая карточка'}
-        </h2>
+        <div className="mb-5 flex items-center justify-between gap-2">
+          <h2 className="font-semibold">
+            {word ? 'Редактирование карточки' : 'Новая карточка'}
+          </h2>
+          <span className="inline-flex items-center gap-1 rounded-full border border-border bg-muted/40 px-2 py-0.5 text-xs text-muted-foreground">
+            {meta.emoji} {meta.title}
+          </span>
+        </div>
 
         <div className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-1.5">
-              <Label htmlFor="word">Слово *</Label>
+              <Label htmlFor="word">{meta.wordLabel} *</Label>
               <Input
                 id="word"
                 type="text"
                 name="word"
                 required
                 defaultValue={word?.word}
-                placeholder="apple"
+                placeholder={meta.wordPlaceholder}
               />
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="translation">Перевод *</Label>
+              <Label htmlFor="translation">{meta.translationLabel} *</Label>
               <Input
                 id="translation"
                 type="text"
                 name="translation"
                 required
                 defaultValue={word?.translation}
-                placeholder="яблоко"
+                placeholder={meta.translationPlaceholder}
               />
             </div>
           </div>
@@ -202,16 +212,18 @@ export default function WordForm({ word }: { word?: Word }) {
                 placeholder="Фрукты, Животные..."
               />
             </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="transcription">Транскрипция на русском</Label>
-              <Input
-                id="transcription"
-                type="text"
-                name="transcription"
-                defaultValue={word?.transcription ?? ''}
-                placeholder="пиджн"
-              />
-            </div>
+            {!isRussian && (
+              <div className="space-y-1.5">
+                <Label htmlFor="transcription">Транскрипция на русском</Label>
+                <Input
+                  id="transcription"
+                  type="text"
+                  name="transcription"
+                  defaultValue={word?.transcription ?? ''}
+                  placeholder="пиджн"
+                />
+              </div>
+            )}
           </div>
 
           <div className="space-y-1.5">
@@ -221,47 +233,49 @@ export default function WordForm({ word }: { word?: Word }) {
               type="text"
               name="short_description"
               defaultValue={word?.short_description ?? ''}
-              placeholder="Смех — лавка"
+              placeholder={isRussian ? 'Букву О запомним так…' : 'Смех — лавка'}
             />
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-3">
-            <div className="space-y-1.5">
-              <Label htmlFor="textbook_class">Класс Rainbow English</Label>
-              <Input
-                id="textbook_class"
-                type="number"
-                name="textbook_class"
-                min={1}
-                max={11}
-                defaultValue={word?.textbook_class ?? ''}
-                placeholder="3"
-              />
+          {!isRussian && (
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="textbook_class">Класс Rainbow English</Label>
+                <Input
+                  id="textbook_class"
+                  type="number"
+                  name="textbook_class"
+                  min={1}
+                  max={11}
+                  defaultValue={word?.textbook_class ?? ''}
+                  placeholder="3"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="textbook_part">Часть</Label>
+                <Input
+                  id="textbook_part"
+                  type="number"
+                  name="textbook_part"
+                  min={1}
+                  max={2}
+                  defaultValue={word?.textbook_part ?? ''}
+                  placeholder="1"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="textbook_page">Страница</Label>
+                <Input
+                  id="textbook_page"
+                  type="number"
+                  name="textbook_page"
+                  min={1}
+                  defaultValue={word?.textbook_page ?? ''}
+                  placeholder="42"
+                />
+              </div>
             </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="textbook_part">Часть</Label>
-              <Input
-                id="textbook_part"
-                type="number"
-                name="textbook_part"
-                min={1}
-                max={2}
-                defaultValue={word?.textbook_part ?? ''}
-                placeholder="1"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="textbook_page">Страница</Label>
-              <Input
-                id="textbook_page"
-                type="number"
-                name="textbook_page"
-                min={1}
-                defaultValue={word?.textbook_page ?? ''}
-                placeholder="42"
-              />
-            </div>
-          </div>
+          )}
         </div>
       </div>
 
