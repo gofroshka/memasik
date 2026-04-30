@@ -45,7 +45,7 @@ export function isSectionId(s: unknown): s is SectionId {
   return s === 'english' || s === 'russian'
 }
 
-export function parseSection(raw: string | string[] | undefined, fallback: SectionId = DEFAULT_SECTION): SectionId {
+export function parseSection(raw: string | string[] | null | undefined, fallback: SectionId = DEFAULT_SECTION): SectionId {
   const v = Array.isArray(raw) ? raw[0] : raw
   return isSectionId(v) ? v : fallback
 }
