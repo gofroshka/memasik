@@ -8,9 +8,5 @@ export default async function AdminWordsPage() {
     .from('words')
     .select('*')
 
-  const sorted = ((words ?? []) as Word[]).sort((a, b) =>
-    (a.word ?? '').localeCompare(b.word ?? '', 'en', { sensitivity: 'base' })
-  )
-
-  return <WordsClient words={sorted} />
+  return <WordsClient words={(words ?? []) as Word[]} />
 }

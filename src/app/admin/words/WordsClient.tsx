@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
-import { List, Plus, Table2 } from 'lucide-react'
+import { List, Plus, Search, Table2, X } from 'lucide-react'
 import { Button, buttonVariants } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
 import { Word } from '@/lib/types'
@@ -11,7 +12,9 @@ import WordsListView from './WordsListView'
 import WordsTableView from './WordsTableView'
 
 type Mode = 'list' | 'table'
+type SortLang = 'en' | 'ru'
 const STORAGE_KEY = 'admin-words-view-mode'
+const SORT_LANG_KEY = 'admin-words-sort-lang'
 
 interface Props {
   words: Word[]
@@ -19,12 +22,16 @@ interface Props {
 
 export default function WordsClient({ words }: Props) {
   const [mode, setMode] = useState<Mode>('list')
+  const [sortLang, setSortLang] = useState<SortLang>('en')
   const [hydrated, setHydrated] = useState(false)
   const [adding, setAdding] = useState(false)
+  const [search, setSearch] = useState('')
 
   useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY)
-    if (stored === 'table') setMode('table')
+    const storedMode = localStorage.getItem(STORAGE_KEY)
+    if (storedMode === 'table') setMode('table')
+    const storedSort = localStorage.getItem(SORT_LANG_KEY)
+    if (storedSort === 'ru') setSortLang('ru')
     setHydrated(true)
   }, [])
 
@@ -34,7 +41,27 @@ export default function WordsClient({ words }: Props) {
     localStorage.setItem(STORAGE_KEY, next)
   }
 
+  function switchSortLang(next: SortLang) {
+    setSortLang(next)
+    setSearch('')
+    localStorage.setItem(SORT_LANG_KEY, next)
+  }
+
   const isTable = hydrated && mode === 'table'
+
+  const visibleWords = useMemo(() => {
+    const field: 'word' | 'translation' = sortLang === 'en' ? 'word' : 'translation'
+    const locale = sortLang === 'en' ? 'en' : 'ru'
+    const q = search.trim().toLowerCase()
+
+    const filtered = q
+      ? words.filter(w => (w[field] ?? '').toLowerCase().includes(q))
+      : words
+
+    return [...filtered].sort((a, b) =>
+      (a[field] ?? '').localeCompare(b[field] ?? '', locale, { sensitivity: 'base' })
+    )
+  }, [words, sortLang, search])
 
   return (
     <div className="space-y-6">
@@ -89,6 +116,55 @@ export default function WordsClient({ words }: Props) {
         </div>
       </div>
 
+      {/* Search + sort-language toggle */}
+      {hydrated && words.length > 0 && (
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div className="relative flex-1 sm:max-w-md">
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              type="search"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder={sortLang === 'en' ? 'Поиск по английскому...' : 'Поиск по русскому...'}
+              className="pl-8 pr-8"
+            />
+            {search && (
+              <button
+                type="button"
+                onClick={() => setSearch('')}
+                className="absolute right-2 top-1/2 inline-flex size-5 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
+                aria-label="Очистить поиск"
+              >
+                <X className="size-3.5" />
+              </button>
+            )}
+          </div>
+
+          <div className="inline-flex overflow-hidden rounded-full border border-border self-start sm:self-auto">
+            <button
+              onClick={() => switchSortLang('en')}
+              className={cn(
+                'px-3 py-1.5 text-xs font-medium transition-colors',
+                sortLang === 'en' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:text-foreground'
+              )}
+              title="Сортировка по английскому слову"
+            >
+              EN
+            </button>
+            <button
+              onClick={() => switchSortLang('ru')}
+              className={cn(
+                'border-l border-border px-3 py-1.5 text-xs font-medium transition-colors',
+                sortLang === 'ru' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:text-foreground'
+              )}
+              title="Сортировка по русскому переводу"
+            >
+              RU
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Content */}
       {words.length === 0 && !adding ? (
         <div className="flex flex-col items-center rounded-xl border border-dashed border-border bg-card py-16 text-center shadow-sm">
@@ -107,17 +183,21 @@ export default function WordsClient({ words }: Props) {
             <Skeleton key={i} className="h-[88px] w-full rounded-xl" />
           ))}
         </div>
+      ) : visibleWords.length === 0 && !adding ? (
+        <div className="rounded-xl border border-dashed border-border bg-card py-12 text-center text-sm text-muted-foreground shadow-sm">
+          Ничего не найдено по запросу «{search}»
+        </div>
       ) : (
         <>
           {/* Mobile: always list */}
           <div className={isTable ? 'md:hidden' : undefined}>
-            <WordsListView words={words} />
+            <WordsListView words={visibleWords} />
           </div>
 
           {/* Desktop table mode */}
           {isTable && (
             <div className="hidden md:block">
-              <WordsTableView words={words} adding={adding} onAddingChange={setAdding} />
+              <WordsTableView words={visibleWords} adding={adding} onAddingChange={setAdding} />
             </div>
           )}
         </>
