@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect } from 'react'
 import Link from 'next/link'
-import { ArrowLeft, Check, RotateCcw } from 'lucide-react'
+import { ArrowLeft, Check, RotateCcw, Star } from 'lucide-react'
 import { Word } from '@/lib/types'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -197,9 +197,10 @@ export default function FlashcardSession({ words, category, backHref }: Flashcar
                               ? 'border-primary bg-primary text-primary-foreground'
                               : 'border-border bg-background text-muted-foreground hover:bg-muted'
                           )}
-                          aria-label={`Вариант ${i + 1}`}
+                          aria-label={i === 0 ? 'Основной вариант' : `Вариант ${i + 1}`}
+                          title={i === 0 ? 'Основной вариант' : `Вариант ${i + 1}`}
                         >
-                          {i + 1}
+                          {i === 0 ? <Star className="size-3" /> : i + 1}
                         </button>
                       ))}
                     </div>

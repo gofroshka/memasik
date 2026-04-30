@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { FileText } from 'lucide-react'
+import { FileText, Star } from 'lucide-react'
 import { AssociationVariant } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import SpeakButton from '@/components/SpeakButton'
@@ -38,9 +38,13 @@ export default function AssociationVariants({ variants }: Props) {
                   : 'border-border bg-card text-muted-foreground hover:bg-muted/50 hover:text-foreground'
               )}
             >
-              <span className="rounded-full bg-foreground/10 px-1.5 py-0.5 text-[10px] font-bold">{i + 1}</span>
+              {i === 0 ? (
+                <Star className="size-3 fill-primary text-primary" aria-label="Основной" />
+              ) : (
+                <span className="rounded-full bg-foreground/10 px-1.5 py-0.5 text-[10px] font-bold">{i + 1}</span>
+              )}
               <span className="max-w-[180px] truncate">
-                {v.short_description?.trim() || `Вариант ${i + 1}`}
+                {v.short_description?.trim() || (i === 0 ? 'Основной' : `Вариант ${i + 1}`)}
               </span>
             </button>
           ))}
@@ -64,8 +68,9 @@ export default function AssociationVariants({ variants }: Props) {
           <div className="flex items-center gap-2">
             <FileText className="size-3.5 text-primary/60" />
             {!single && (
-              <span className="text-[10px] font-extrabold uppercase tracking-widest text-primary/60">
-                Вариант {active + 1}
+              <span className="inline-flex items-center gap-1 text-[10px] font-extrabold uppercase tracking-widest text-primary/60">
+                {active === 0 && <Star className="size-3 fill-primary text-primary" />}
+                {active === 0 ? 'Основной' : `Вариант ${active + 1}`}
               </span>
             )}
             {current.short_description && (

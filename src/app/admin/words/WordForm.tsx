@@ -3,7 +3,7 @@
 import { useActionState, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Word } from '@/lib/types'
-import { ImagePlus, Link2, Plus, Trash2, Upload, X } from 'lucide-react'
+import { ImagePlus, Link2, Plus, Star, Trash2, Upload, X } from 'lucide-react'
 import { saveWordAction } from '@/app/actions/words'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -17,23 +17,31 @@ type VariantImage =
   | { type: 'none' }
 
 interface VariantState {
+  // Stable client-only key so React keeps the same DOM (and file inputs)
+  // across reorders.
+  _id: string
   text: string
   short_description: string
   image: VariantImage
 }
 
+function newVariantId() {
+  return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+}
+
 function seedVariants(word?: Word): VariantState[] {
   if (word?.associations && word.associations.length > 0) {
     return word.associations.map(v => ({
+      _id: newVariantId(),
       text: v.text ?? '',
       short_description: v.short_description ?? '',
       image: v.image_url ? { type: 'url' as const, url: v.image_url } : { type: 'none' as const },
     }))
   }
   if (word?.description) {
-    return [{ text: word.description, short_description: '', image: { type: 'none' } }]
+    return [{ _id: newVariantId(), text: word.description, short_description: '', image: { type: 'none' } }]
   }
-  return [{ text: '', short_description: '', image: { type: 'none' } }]
+  return [{ _id: newVariantId(), text: '', short_description: '', image: { type: 'none' } }]
 }
 
 export default function WordForm({ word }: { word?: Word }) {
@@ -79,7 +87,17 @@ export default function WordForm({ word }: { word?: Word }) {
   }
 
   function addVariant() {
-    setVariants(prev => [...prev, { text: '', short_description: '', image: { type: 'none' } }])
+    setVariants(prev => [...prev, { _id: newVariantId(), text: '', short_description: '', image: { type: 'none' } }])
+  }
+
+  function makePrimary(i: number) {
+    setVariants(prev => {
+      if (i <= 0 || i >= prev.length) return prev
+      const next = [...prev]
+      const [picked] = next.splice(i, 1)
+      next.unshift(picked)
+      return next
+    })
   }
 
   function removeVariant(i: number) {
@@ -127,7 +145,7 @@ export default function WordForm({ word }: { word?: Word }) {
 
       {/* Per-variant hidden inputs — file inputs are rendered inline below */}
       {variants.map((v, i) => (
-        <div key={`assoc-hidden-${i}`}>
+        <div key={`hidden-${v._id}`}>
           <input type="hidden" name={`assoc[${i}][text]`} value={v.text} />
           <input type="hidden" name={`assoc[${i}][short_description]`} value={v.short_description} />
           <input
@@ -257,13 +275,13 @@ export default function WordForm({ word }: { word?: Word }) {
           </Button>
         </div>
         <p className="mb-4 text-xs text-muted-foreground">
-          Каждый вариант — отдельная мнемоника со своей картинкой и описанием. Пользователь сможет переключаться между ними на карточке слова.
+          Первый вариант — основной (он показывается по умолчанию на карточке слова и в флешкартах). Остальные пользователь увидит, переключаясь между ними.
         </p>
 
         <div className="space-y-5">
           {variants.map((v, i) => (
             <VariantEditor
-              key={i}
+              key={v._id}
               index={i}
               total={variants.length}
               variant={v}
@@ -273,6 +291,7 @@ export default function WordForm({ word }: { word?: Word }) {
               onChangeUrl={url => setVariantImageFromUrl(i, url)}
               onClearImage={() => clearVariantImage(i)}
               onRemove={() => removeVariant(i)}
+              onMakePrimary={() => makePrimary(i)}
             />
           ))}
         </div>
@@ -370,13 +389,15 @@ interface VariantEditorProps {
   onChangeUrl: (url: string) => void
   onClearImage: () => void
   onRemove: () => void
+  onMakePrimary: () => void
 }
 
 function VariantEditor({
   index, total, variant, onChangeText, onChangeShortDesc,
-  onPickFile, onChangeUrl, onClearImage, onRemove,
+  onPickFile, onChangeUrl, onClearImage, onRemove, onMakePrimary,
 }: VariantEditorProps) {
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const isPrimary = index === 0
   const preview =
     variant.image.type === 'url' ? variant.image.url
     : variant.image.type === 'file' ? variant.image.preview
@@ -388,20 +409,44 @@ function VariantEditor({
   }
 
   return (
-    <div className="rounded-lg border border-border bg-muted/20 p-4">
-      <div className="mb-3 flex items-center justify-between">
-        <span className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
-          {total > 1 ? `Вариант ${index + 1}` : 'Ассоциация'}
+    <div className={cn(
+      'rounded-lg border p-4',
+      isPrimary
+        ? 'border-primary/40 bg-primary/5 ring-1 ring-primary/15'
+        : 'border-border bg-muted/20'
+    )}>
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <span className={cn(
+          'inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide',
+          isPrimary ? 'text-primary' : 'text-muted-foreground'
+        )}>
+          {isPrimary && <Star className="size-3.5 fill-primary text-primary" />}
+          {total > 1
+            ? (isPrimary ? 'Основной вариант' : `Вариант ${index + 1}`)
+            : 'Ассоциация'}
         </span>
         {total > 1 && (
-          <button
-            type="button"
-            onClick={onRemove}
-            className="inline-flex items-center gap-1 text-xs text-destructive hover:underline"
-          >
-            <Trash2 className="size-3" />
-            Удалить вариант
-          </button>
+          <div className="flex items-center gap-3">
+            {!isPrimary && (
+              <button
+                type="button"
+                onClick={onMakePrimary}
+                className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                title="Поднять на первое место — этот вариант будет показан первым"
+              >
+                <Star className="size-3" />
+                Сделать основным
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={onRemove}
+              className="inline-flex items-center gap-1 text-xs text-destructive hover:underline"
+            >
+              <Trash2 className="size-3" />
+              Удалить вариант
+            </button>
+          </div>
         )}
       </div>
 
