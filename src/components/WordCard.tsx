@@ -7,6 +7,7 @@ import ImageWithFallback from '@/components/ImageWithFallback'
 
 export default function WordCard({ word }: { word: Word }) {
   const hint = word.short_description
+  const extraVariants = Math.max(0, (word.associations?.length ?? 0) - 1)
 
   return (
     <Link href={`/words/${word.id}`} className="group block">
@@ -23,6 +24,16 @@ export default function WordCard({ word }: { word: Word }) {
             alt={word.word}
             imgClassName="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
           />
+          {extraVariants > 0 && (
+            <span
+              aria-label={`Ещё ${extraVariants} вариантов ассоциации`}
+              title={`+${extraVariants} вариант${extraVariants === 1 ? '' : extraVariants < 5 ? 'а' : 'ов'} ассоциации`}
+              className="absolute right-2 top-2 inline-flex min-w-[22px] items-center justify-center rounded-full bg-primary px-1.5 text-[11px] font-bold leading-none text-primary-foreground shadow ring-2 ring-background/80"
+              style={{ height: 22 }}
+            >
+              +{extraVariants}
+            </span>
+          )}
         </div>
 
         {/* Content */}
