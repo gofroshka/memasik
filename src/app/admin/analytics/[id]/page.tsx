@@ -13,12 +13,15 @@ export default async function WordAnalyticsPage({ params }: Props) {
   const { id } = await params
   const supabase = await createClient()
 
-  const [{ data: word }, { data: stats }] = await Promise.all([
+  const [{ data: word }, { data: stats }, { data: variantRows }] = await Promise.all([
     supabase.from('words').select('id, word, translation, image_url, is_published').eq('id', id).single(),
     supabase.rpc('get_word_stats' as never, { p_word_id: id } as never),
+    supabase.rpc('get_word_variant_stats' as never, { p_word_id: id } as never),
   ])
 
   if (!word) notFound()
+
+  const variantStats = (variantRows as { variant_id: string; pos: number; label: string; up: number; down: number }[] | null) ?? []
 
   const s = stats as {
     total_views: number; week_views: number; prev_week_views: number
@@ -156,6 +159,69 @@ export default async function WordAnalyticsPage({ params }: Props) {
         </div>
 
       </div>
+
+      {/* Per-variant feedback breakdown */}
+      {variantStats.length > 1 && (
+        <div className="rounded-xl border border-border bg-card p-5 shadow-sm space-y-4">
+          <div>
+            <h2 className="text-sm font-bold">Отзывы по вариантам</h2>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              Сравните, какая ассоциация работает лучше — пользователи голосуют отдельно за каждый вариант.
+            </p>
+          </div>
+          <div className="space-y-3">
+            {variantStats.map((v) => {
+              const total = v.up + v.down
+              const positive = total > 0 ? Math.round((v.up / total) * 100) : null
+              const quality =
+                total >= 3
+                  ? (positive ?? 0) >= 70 ? { tag: '🎯 Сильная', cls: 'text-green-700 bg-green-500/10 border-green-500/30' }
+                  : (positive ?? 0) >= 40 ? { tag: '⚠️ Средняя', cls: 'text-amber-700 bg-amber-500/10 border-amber-500/30' }
+                  : { tag: '❌ Слабая', cls: 'text-red-700 bg-red-500/10 border-red-500/30' }
+                  : null
+              return (
+                <div key={v.variant_id} className="rounded-lg border border-border p-4 space-y-2">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="inline-flex size-5 shrink-0 items-center justify-center rounded-full bg-foreground/10 text-[10px] font-bold">
+                        {v.pos}
+                      </span>
+                      <span className="truncate font-semibold text-sm">{v.label}</span>
+                      {v.pos === 1 && (
+                        <span className="rounded-full border border-border px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">
+                          основной
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex shrink-0 items-center gap-3 text-xs font-semibold">
+                      <span className="flex items-center gap-1 text-green-600"><ThumbsUp className="size-3" />{v.up}</span>
+                      <span className="flex items-center gap-1 text-red-500"><ThumbsDown className="size-3" />{v.down}</span>
+                    </div>
+                  </div>
+                  {total === 0 ? (
+                    <p className="text-xs text-muted-foreground">Отзывов пока нет</p>
+                  ) : (
+                    <>
+                      <div className="flex h-2 w-full overflow-hidden rounded-full">
+                        <div className="h-full bg-green-500 transition-all" style={{ width: `${positive}%` }} />
+                        <div className="h-full flex-1 bg-red-400" />
+                      </div>
+                      <div className="flex flex-wrap items-center justify-between gap-2 text-[11px]">
+                        <span className="text-muted-foreground">{positive}% положительных · {total} {total === 1 ? 'отзыв' : total < 5 ? 'отзыва' : 'отзывов'}</span>
+                        {quality && (
+                          <span className={cn('rounded-full border px-2 py-0.5 font-semibold', quality.cls)}>
+                            {quality.tag}
+                          </span>
+                        )}
+                      </div>
+                    </>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Actions */}
       <div className="flex gap-2">

@@ -35,7 +35,7 @@ export default async function AdminAnalyticsPage() {
     supabase.from('user_suggestions').select('*', { count: 'exact', head: true }),
     supabase.from('user_suggestions').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
     supabase.rpc('get_top_viewed_words' as never),
-    supabase.rpc('get_top_rated_words' as never),
+    supabase.rpc('get_top_rated_variants' as never),
     supabase.rpc('get_users_by_month' as never),
     supabase.rpc('get_views_by_day' as never),
     supabase.from('words').select('id, word, translation').is('image_url', null).eq('is_published', true).limit(10),
@@ -49,7 +49,7 @@ export default async function AdminAnalyticsPage() {
   const views = (viewsByDay as { day: string; count: number }[] | null) ?? []
   const users = (usersByMonth as { month: string; count: number }[] | null) ?? []
   const topW = (topViewed as { word: string; translation: string; views: number }[] | null) ?? []
-  const topR = (topRated as { word: string; translation: string; up: number; down: number }[] | null) ?? []
+  const topR = (topRated as { word: string; translation: string; label: string; pos: number; up: number; down: number }[] | null) ?? []
 
   const maxViews = Math.max(...views.map(d => d.count), 1)
   const maxTopW = Math.max(...topW.map(w => w.views), 1)
@@ -173,7 +173,15 @@ export default async function AdminAnalyticsPage() {
                   <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Лучшие ассоциации</p>
                   {topR.map((w, i) => (
                     <div key={i} className="flex items-center justify-between gap-2 text-sm">
-                      <span className="truncate">{w.word} <span className="text-xs text-muted-foreground">— {w.translation}</span></span>
+                      <div className="min-w-0">
+                        <div className="truncate">
+                          {w.word} <span className="text-xs text-muted-foreground">— {w.translation}</span>
+                        </div>
+                        <div className="mt-0.5 flex items-center gap-1 text-[10px] text-muted-foreground">
+                          <span className="inline-flex size-3.5 items-center justify-center rounded-full bg-foreground/10 text-[9px] font-bold">{w.pos}</span>
+                          <span className="truncate">{w.label}</span>
+                        </div>
+                      </div>
                       <div className="flex shrink-0 items-center gap-2">
                         <span className="flex items-center gap-0.5 text-xs font-semibold text-green-600"><ThumbsUp className="size-3" />{w.up}</span>
                         {w.down > 0 && <span className="flex items-center gap-0.5 text-xs text-red-500"><ThumbsDown className="size-3" />{w.down}</span>}
